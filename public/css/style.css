@@ -1,0 +1,737 @@
+:root{
+    --bg: #0b1220;
+    --card: #1e2a3a;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+
+    --primary: #7c5cff;
+    --primaryHover: #9d8bff;
+
+    --danger: #ef4444;
+
+    --border: rgba(255,255,255,.08);
+    --glass: rgba(255,255,255,.06);
+}
+
+/* =========================
+   RESET
+========================= */
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body{
+    min-height: 100%;
+}
+
+body{
+    font-family:
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        Segoe UI,
+        Roboto,
+        Helvetica,
+        Arial;
+
+    color: var(--text);
+
+    background:
+        radial-gradient(
+            1200px 600px at 10% 0%,
+            rgba(124,92,255,.18),
+            transparent 60%
+        ),
+        radial-gradient(
+            900px 500px at 90% 20%,
+            rgba(239,68,68,.12),
+            transparent 55%
+        ),
+        var(--bg);
+
+    overflow-x: hidden;
+}
+
+/* =========================
+   LOGO FONDO GLOBAL
+========================= */
+
+body::before{
+    content: "";
+
+    position: fixed;
+    inset: 0;
+
+    z-index: -1;
+    pointer-events: none;
+
+    background-image:
+        url('../img/logo_principal.png');
+
+    background-repeat: no-repeat;
+
+    background-position: center center;
+
+    background-size: 700px;
+
+    opacity: .13;
+
+    filter:
+        drop-shadow(0 0 40px rgba(124,92,255,.35));
+}
+
+/* =========================
+   TEXTOS
+========================= */
+
+h1,h2,h3,h4{
+    color: white;
+}
+
+a{
+    text-decoration: none;
+    color: inherit;
+}
+
+button{
+    font-family: inherit;
+}
+
+/* =========================
+   CONTENEDORES
+========================= */
+
+.container{
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+}
+
+.card,
+.card-dashboard,
+.seccion-lista,
+.modal-contenido{
+    background: var(--glass);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 20px;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    box-shadow:
+        0 10px 40px rgba(0,0,0,.25);
+}
+
+.card{
+    width: 100%;
+    max-width: 950px;
+    padding: 28px;
+}
+
+/* =========================
+   FORMULARIOS
+========================= */
+
+.grid-form{
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(220px,1fr));
+
+    gap: 16px;
+
+    margin-bottom: 16px;
+}
+
+.input-group,
+.modal-campo{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+label,
+.modal-label{
+    font-size: 12px;
+
+    color: var(--muted);
+
+    text-transform: uppercase;
+
+    letter-spacing: .04em;
+}
+
+input,
+select,
+textarea,
+.modal-input{
+    width: 100%;
+
+    padding: 12px;
+
+    border-radius: 12px;
+
+    border:
+        1px solid rgba(255,255,255,.10);
+
+    background:
+        rgba(15,23,42,.55);
+
+    color: var(--text);
+
+    outline: none;
+
+    transition: .25s;
+}
+
+textarea{
+    min-height: 100px;
+    resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.modal-input:focus{
+    border-color: var(--primary);
+
+    box-shadow:
+        0 0 0 4px rgba(124,92,255,.18);
+
+    background:
+        rgba(15,23,42,.75);
+}
+
+input::placeholder,
+textarea::placeholder{
+    color: rgba(255,255,255,.45);
+}
+
+/* =========================
+   BOTONES
+========================= */
+
+button,
+.btn-editar,
+.btn-eliminar,
+.btn-cancelar,
+.btn-guardar,
+.btn-logout{
+    border: none;
+
+    border-radius: 12px;
+
+    padding: 12px 18px;
+
+    cursor: pointer;
+
+    font-weight: 700;
+
+    transition: .25s;
+}
+
+button:hover,
+.btn-editar:hover,
+.btn-eliminar:hover,
+.btn-guardar:hover,
+.btn-logout:hover{
+    transform: translateY(-1px);
+}
+
+button,
+.btn-editar,
+.btn-guardar{
+    background: var(--primary);
+    color: white;
+}
+
+button:hover,
+.btn-editar:hover,
+.btn-guardar:hover{
+    background: var(--primaryHover);
+}
+
+.btn-eliminar,
+.btn-logout{
+    background: var(--danger);
+    color: white;
+}
+
+.btn-cancelar{
+    background: transparent;
+
+    border:
+        1px solid #334155;
+
+    color: #94a3b8;
+}
+
+/* =========================
+   AUTH
+========================= */
+
+.link-auth{
+    margin-top: 18px;
+
+    text-align: center;
+
+    color: #b8c2d6;
+
+    font-size: 14px;
+}
+
+.link-auth a{
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.link-auth a:hover{
+    color: var(--primaryHover);
+}
+
+/* =========================
+   DASHBOARD
+========================= */
+
+.dashboard{
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar{
+    width: 280px;
+
+    padding: 30px 20px;
+
+    display: flex;
+    flex-direction: column;
+
+    background:
+        rgba(17,24,39,.92);
+
+    border-right:
+        1px solid var(--border);
+}
+
+.logo h2{
+    margin-bottom: 40px;
+}
+
+.perfil{
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.perfil img{
+    width: 95px;
+    height: 95px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    border:
+        3px solid var(--primary);
+
+    margin-bottom: 12px;
+}
+
+.perfil p{
+    color: var(--muted);
+    margin-top: 6px;
+}
+
+.menu{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    flex: 1;
+}
+
+.menu a{
+    padding: 14px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255,255,255,.05);
+
+    transition: .25s;
+}
+
+.menu a:hover{
+    background: var(--primary);
+
+    transform:
+        translateX(4px);
+}
+
+.contenido{
+    flex: 1;
+    padding: 40px;
+}
+
+.topbar h1{
+    margin-bottom: 30px;
+}
+
+/* =========================
+   CARDS DASHBOARD
+========================= */
+
+.cards-dashboard{
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(220px,1fr));
+
+    gap: 20px;
+}
+
+.card-dashboard{
+    padding: 24px;
+}
+
+.card-dashboard h3{
+    margin-bottom: 10px;
+}
+
+.card-dashboard p{
+    font-size: 32px;
+
+    font-weight: bold;
+
+    color: var(--primary);
+}
+
+/* =========================
+   TABLAS
+========================= */
+
+.tabla{
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla th,
+.tabla td{
+    padding: 14px;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.08);
+
+    text-align: left;
+}
+
+.tabla th{
+    color: var(--primary);
+}
+
+.acciones{
+    display: flex;
+    gap: 10px;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal-overlay{
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    background:
+        rgba(0,0,0,.85);
+
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-contenido{
+    width: 400px;
+    max-width: 90vw;
+
+    padding: 30px;
+
+    position: relative;
+}
+
+.modal-cerrar{
+    position: absolute;
+
+    top: 12px;
+    right: 16px;
+
+    background: none;
+
+    color: #94a3b8;
+
+    font-size: 22px;
+}
+
+.modal-titulo{
+    margin-bottom: 24px;
+}
+
+.modal-campos{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-acciones{
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    margin-top: 28px;
+}
+
+/* =========================
+   LISTAS
+========================= */
+
+.secciones-listas{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    margin-top: 30px;
+}
+
+.seccion-lista{
+    padding: 24px;
+}
+
+.seccion-titulo{
+    margin-bottom: 18px;
+}
+
+.lista-cards{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.item-card{
+    min-width: 170px;
+
+    padding: 14px 16px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(15,23,42,.8);
+
+    border:
+        1px solid #334155;
+
+    cursor: pointer;
+
+    transition: .25s;
+}
+
+.item-card:hover{
+    border-color: var(--primary);
+
+    transform: translateY(-2px);
+}
+
+.item-nombre{
+    font-weight: 700;
+}
+
+.item-sub{
+    margin-top: 4px;
+
+    font-size: 13px;
+
+    color: #94a3b8;
+}
+
+/* =========================
+   HEADER / FOOTER
+========================= */
+
+.app-header{
+    padding: 28px 18px 10px;
+}
+
+.app-header-inner,
+.app-footer-inner{
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.app-header-inner{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+.app-logo{
+    width: 55px;
+    height: 55px;
+
+    border-radius: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        rgba(124,92,255,.12);
+
+    border:
+        1px solid rgba(124,92,255,.35);
+}
+
+.app-logo img{
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+}
+
+.app-title{
+    text-align: center;
+}
+
+.app-title p{
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.app-footer{
+    margin-top: auto;
+
+    padding: 28px 18px;
+
+    border-top:
+        1px solid rgba(255,255,255,.08);
+
+    background:
+        rgba(0,0,0,.05);
+}
+
+.app-footer-inner{
+    display: grid;
+
+    grid-template-columns:
+        1fr auto;
+
+    gap: 18px;
+
+    align-items: center;
+}
+
+.footer-left{
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.footer-social{
+    display: flex;
+    gap: 10px;
+}
+
+.footer-social a{
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+
+    background:
+        rgba(255,255,255,.08);
+
+    border:
+        1px solid rgba(255,255,255,.12);
+
+    color: white;
+
+    font-size: 22px;
+
+    box-shadow:
+        0 0 18px rgba(0,0,0,.35);
+
+    transition: .3s;
+}
+
+.footer-social a:hover{
+    transform:
+        translateY(-3px) scale(1.05);
+
+    background:
+        rgba(124,92,255,.28);
+
+    border-color:
+        rgba(124,92,255,.7);
+
+    box-shadow:
+        0 0 25px rgba(124,92,255,.45);
+}
+
+.footer-social i,
+.footer-social svg{
+    color: white;
+    fill: white;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px){
+
+    .dashboard{
+        flex-direction: column;
+    }
+
+    .sidebar{
+        width: 100%;
+    }
+
+    .contenido{
+        padding: 25px;
+    }
+
+    body::before{
+        background-size: 420px;
+        opacity: .09;
+    }
+}
+
+@media (max-width: 720px){
+
+    .app-footer-inner{
+        grid-template-columns: 1fr;
+    }
+
+    .card{
+        padding: 20px;
+    }
+
+    .contenido{
+        padding: 20px;
+    }
+}

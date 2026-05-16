@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Clínica</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>MediClick</h2>
+            </div>
+            <div class="perfil">
+                <img
+                    id="fotoUsuario"
+                    src="./uploads/usuarios/default.png"
+                    alt="Foto"
+                >
+                <h3 id="nombreUsuario"></h3>
+                <p id="rolUsuario"></p>
+            </div>
+            <nav class="menu" id="menu">
+                <!-- JS renderiza menú -->
+            </nav>
+            <button id="logout" class="btn-logout" onclick="cerrarSesion()">
+                Cerrar sesión
+            </button>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="contenido">
+            <div class="topbar">
+             <h1>Panel principal</h1>
+             <p id="bienvenida"></p>
+            </div>
+            <div class="secciones-listas">
+
+                <!-- solo admin -->
+                <div id="seccionPacientes" class="seccion-lista" data-roles="admin recepcionista"></div>
+                    <h2 class="seccion-titulo">Metricas</h2>
+                    <div class="lista-cards" id="listaMedicos"></div>
+                </div>
+
+                <!-- admin, medico, recepcionista -->
+                <div id="seccionPacientes" class="seccion-lista" data-roles="admin medico recepcionista">
+                    <h2 class="seccion-titulo">Pacientes</h2>
+                    <div class="lista-cards" id="listaPacientes"></div>
+                </div>
+
+                <!-- todos -->
+                <div id="seccionCitas" class="seccion-lista" data-roles="admin medico recepcionista consulta">
+                    <h2 class="seccion-titulo">Citas</h2>
+                    <div class="lista-cards" id="listaCitas"></div>
+                </div>
+
+                <!-- solo admin -->
+                <div id="seccionUsuarios" class="seccion-lista" data-roles="admin">
+                    <h2 class="seccion-titulo">Usuarios</h2>
+                    <div class="lista-cards" id="listaUsuarios"></div>
+                </div>
+
+            </div>
+
+            <!-- MÉTRICAS -->
+            <div class="cards-dashboard" data-roles="admin">
+                <div class="card-dashboard">
+                    <h3>Pacientes</h3>
+                    <h2 id="totalPacientes">0</h2>
+                </div>
+                <div class="card-dashboard">
+                    <h3>Médicos</h3>
+                    <h2 id="totalMedicos">0</h2>
+                </div>
+                <div class="card-dashboard">
+                    <h3>Citas</h3>
+                    <h4>total citas</h4>
+                    <h2 id="totalCitas">0</h2>
+                    <h4>pendientes</h4>
+                    <h2 id="citasPendientes">0</h2>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal-detalle" class="modal-overlay">
+        <div class="modal-contenido">
+            <button class="modal-cerrar" onclick="cerrarModal()">✕</button>
+            <h2 class="modal-titulo" id="modal-titulo"></h2>
+            <div id="modal-campos" class="modal-campos"></div>
+            <div class="modal-acciones">
+                <button class="btn-eliminar" onclick="eliminarRegistro()">Eliminar</button>
+                <button class="btn-cancelar" onclick="cerrarModal()">Cerrar</button>
+                <button class="btn-guardar" onclick="guardarCambios()">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function obtenerRol() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.rol;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        function aplicarPermisos() {
+            const rol = obtenerRol();
+            if (!rol) return;
+
+            document.querySelectorAll('[data-roles]').forEach(seccion => {
+                const rolesPermitidos = seccion.dataset.roles.split(' ');
+                seccion.style.display = rolesPermitidos.includes(rol)
+                    ? 'block'
+                    : 'none';
+            });
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        aplicarPermisos();
+    </script>
+
+    <script src="./js/dashboard.js"></script>
+</body>
+</html>
