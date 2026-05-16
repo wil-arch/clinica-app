@@ -1,19 +1,31 @@
 const express = require('express');
-
 const router = express.Router();
 
 const db = require('../db');
 
 const multer = require('multer');
-
 const bcrypt = require('bcryptjs');
-
 const jwt = require('jsonwebtoken');
-
 const path = require('path');
 
 /* =========================
-   CONFIGURAR MULTER
+   VALIDACIÓN DE ARCHIVO
+========================= */
+
+const fileFilter = (req, file, cb) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const mimeValido = file.mimetype === 'image/jpeg';
+    const extValida = extension === '.jpg' || extension === '.jpeg';
+
+    if (mimeValido && extValida) {
+        cb(null, true);
+    } else {
+        cb(new Error('Solo se permiten imágenes JPG'));
+    }
+};
+
+/* =========================
+   CONFIGURACIÓN MULTER
 ========================= */
 
 const storage = multer.diskStorage({
@@ -21,145 +33,72 @@ const storage = multer.diskStorage({
         cb(null, 'public/uploads/usuarios');
     },
     filename: (req, file, cb) => {
-        const uniqueName = Date.now() + path.extname(file.originalname);
+        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
         cb(null, uniqueName);
     }
 });
 
-const fileFilter = (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-
-    if (extension === '.jpg' || extension === '.jpeg' || extension === '.png') {
-        cb(null, true);
-    } else {
-        cb(new Error('Solo se permiten imágenes JPG y PNG'));
-    }
-};
-
 const upload = multer({ storage, fileFilter });
 
 /* =========================
-   REGISTRO
+   REGISTRO USUARIO
 ========================= */
 
 router.post('/registro', (req, res) => {
     upload.single('foto')(req, res, async (error) => {
+
+        if (error instanceof multer.MulterError) {
+            return res.status(400).json({ mensaje: 'Error de carga: ' + error.message });
+        }
         if (error) {
-            console.log(error);
-            return res.status(400).json({
-                mensaje: 'Solo se permiten imágenes JPG y PNG'
-            });
+            return res.status(400).json({ mensaje: error.message });
         }
 
         try {
-            const {
-                nombre,
-                email,
-                password,
-                rol
-            } = req.body;
+            const { nombre, email, password, rol } = req.body;
 
-            const verificarSQL = 'SELECT * FROM usuarios WHERE email = ?';
+            // await con pool.promise()
+            const [existe] = await db.query(
+                'SELECT id FROM usuarios WHERE email = ?',
+                [email]
+            );
 
-            db.query(verificarSQL, [email], async (error, resultado) => {
-                if (error) {
-                    console.log(error);
-                    return res.status(500).json({
-                        mensaje: 'Error servidor'
-                    });
-                }
+            if (existe.length > 0) {
+                return res.status(400).json({ mensaje: 'El email ya existe' });
+            }
 
-                if (resultado.length > 0) {
-                    return res.status(400).json({
-                        mensaje: 'El email ya existe'
-                    });
-                }
+            const passwordHash = await bcrypt.hash(password, 10);
+            const foto = req.file ? req.file.filename : 'default.png';
 
-                const passwordHash = await bcrypt.hash(password, 10);
+            const [resultado] = await db.query(
+                `INSERT INTO usuarios (nombre, email, password, rol, foto)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [nombre, email, passwordHash, rol, foto]
+            );
 
-                const foto = req.file ? req.file.filename : 'default.png';
+            const usuarioId = resultado.insertId;
 
-                const sql = `
-                    INSERT INTO usuarios
-                    (nombre, email, password, rol, foto)
-                    VALUES (?, ?, ?, ?, ?)
-                `;
+            /* =========================
+               SI ES MÉDICO
+            ========================= */
 
-                db.query(
-                    sql,
-                    [
-                        nombre,
-                        email,
-                        passwordHash,
-                        rol,
-                        foto
-                    ],
-                    (error, resultado) => {
-                        if (error) {
-                            console.log(error);
-                            return res.status(500).json({
-                                mensaje: 'Error registro'
-                            });
-                        }
+            if (rol === 'medico') {
+                const { especialidad, telefono, consultorio } = req.body;
 
-                        const usuarioId = resultado?.insertId;
-
-                        if (rol === 'medico') {
-                            const {
-                                especialidad,
-                                telefono,
-                                consultorio
-                            } = req.body;
-
-                            const sqlMedico = `
-                                INSERT INTO medicos
-                                (
-                                    id,
-                                    nombre,
-                                    especialidad,
-                                    telefono,
-                                    email,
-                                    consultorio
-                                )
-                                VALUES (?, ?, ?, ?, ?, ?)
-                            `;
-
-                            return db.query(
-                                sqlMedico,
-                                [
-                                    usuarioId,
-                                    nombre,
-                                    especialidad || null,
-                                    telefono || null,
-                                    email,
-                                    consultorio || null
-                                ],
-                                (errMedico) => {
-                                    if (errMedico) {
-                                        console.log(errMedico);
-                                        return res.status(500).json({
-                                            mensaje: 'Usuario registrado, pero error al crear médico en tabla medicos'
-                                        });
-                                    }
-
-                                    return res.status(201).json({
-                                        mensaje: 'Usuario (médico) registrado correctamente'
-                                    });
-                                }
-                            );
-                        }
-
-                        return res.status(201).json({
-                            mensaje: 'Usuario registrado correctamente'
-                        });
-                    }
+                await db.query(
+                    `INSERT INTO medicos (id, nombre, especialidad, telefono, email, consultorio)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [usuarioId, nombre, especialidad || null, telefono || null, email, consultorio || null]
                 );
-            });
-        } catch (error) {
-            console.log(error);
-            res.status(500).json({
-                mensaje: 'Error interno'
-            });
+
+                return res.status(201).json({ mensaje: 'Usuario (médico) registrado correctamente' });
+            }
+
+            return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
+
+        } catch (err) {
+            console.error('Error en registro:', err);
+            return res.status(500).json({ mensaje: 'Error interno: ' + err.message });
         }
     });
 });
@@ -168,51 +107,33 @@ router.post('/registro', (req, res) => {
    LOGIN
 ========================= */
 
-router.post('/login', (req, res) => {
-    console.log('LOGIN body recibido:', req.body);
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ mensaje: 'Datos inválidos' });
-    }
-
-    const { email, password } = req.body;
-    const sql = 'SELECT * FROM usuarios WHERE email = ?';
-
-    db.query(sql, [email], async (error, resultado) => {
-        if (error) {
-            console.log(error);
-            return res.status(500).json({
-                mensaje: 'Error servidor'
-            });
-        }
+        const [resultado] = await db.query(
+            'SELECT * FROM usuarios WHERE email = ?',
+            [email]
+        );
 
         if (resultado.length === 0) {
-            return res.status(404).json({
-                mensaje: 'Usuario no encontrado'
-            });
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
 
         const usuario = resultado[0];
         const passwordCorrecta = await bcrypt.compare(password, usuario.password);
 
         if (!passwordCorrecta) {
-            return res.status(401).json({
-                mensaje: 'Contraseña incorrecta'
-            });
+            return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
         }
 
         const token = jwt.sign(
-            {
-                id: usuario.id,
-                rol: usuario.rol
-            },
+            { id: usuario.id, rol: usuario.rol },
             process.env.JWT_SECRET,
-            {
-                expiresIn: '8h'
-            }
+            { expiresIn: '8h' }
         );
 
-        res.json({
+        return res.json({
             mensaje: 'Login correcto',
             token,
             usuario: {
@@ -223,125 +144,66 @@ router.post('/login', (req, res) => {
                 foto: usuario.foto
             }
         });
-    });
+
+    } catch (err) {
+        console.error('Error en login:', err);
+        return res.status(500).json({ mensaje: 'Error interno' });
+    }
 });
 
 /* =========================
    OBTENER USUARIOS
 ========================= */
 
-router.get('/', (req, res) => {
-
-    const sql =
-        'SELECT id, nombre, email, rol, foto FROM usuarios';
-
-    db.query(sql, (error, resultados) => {
-
-        if (error) {
-
-            console.log(error);
-
-            return res.status(500).json({
-
-                mensaje:
-                    'Error al obtener usuarios'
-            });
-        }
-
-        return res.json(resultados);
-    });
+router.get('/', async (req, res) => {
+    try {
+        const [usuarios] = await db.query(
+            'SELECT id, nombre, email, rol, foto FROM usuarios'
+        );
+        return res.json(usuarios);
+    } catch (err) {
+        console.error('Error obteniendo usuarios:', err);
+        return res.status(500).json({ mensaje: 'Error al obtener usuarios' });
+    }
 });
-
 
 /* =========================
    ACTUALIZAR USUARIO
 ========================= */
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
+    try {
+        const { nombre, email, rol } = req.body;
 
-    const {
-        nombre,
-        email,
-        rol
-    } = req.body;
+        await db.query(
+            `UPDATE usuarios SET nombre = ?, email = ?, rol = ? WHERE id = ?`,
+            [nombre, email, rol, req.params.id]
+        );
 
-    const sql = `
-        UPDATE usuarios
-        SET
-            nombre = ?,
-            email = ?,
-            rol = ?
-        WHERE id = ?
-    `;
+        return res.json({ mensaje: 'Usuario actualizado' });
 
-    db.query(
-
-        sql,
-
-        [
-            nombre,
-            email,
-            rol,
-            req.params.id
-        ],
-
-        (error) => {
-
-            if (error) {
-
-                console.log(error);
-
-                return res.status(500).json({
-
-                    mensaje:
-                        'Error actualizando usuario'
-                });
-            }
-
-            return res.json({
-
-                mensaje:
-                    'Usuario actualizado'
-            });
-        }
-    );
+    } catch (err) {
+        console.error('Error actualizando usuario:', err);
+        return res.status(500).json({ mensaje: 'Error actualizando usuario' });
+    }
 });
 
 /* =========================
    ELIMINAR USUARIO
 ========================= */
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
+    try {
+        await db.query(
+            'DELETE FROM usuarios WHERE id = ?',
+            [req.params.id]
+        );
+        return res.json({ mensaje: 'Usuario eliminado correctamente' });
 
-    const sql =
-        'DELETE FROM usuarios WHERE id = ?';
-
-    db.query(
-
-        sql,
-
-        [req.params.id],
-
-        (error) => {
-
-            if (error) {
-
-                console.log(error);
-
-                return res.status(500).json({
-
-                    mensaje:
-                        'Error eliminando usuario'
-                });
-            }
-
-            return res.json({
-
-                mensaje:
-                    'Usuario eliminado correctamente'
-            });
-        }
-    );
+    } catch (err) {
+        console.error('Error eliminando usuario:', err);
+        return res.status(500).json({ mensaje: 'Error eliminando usuario' });
+    }
 });
 
 module.exports = router;

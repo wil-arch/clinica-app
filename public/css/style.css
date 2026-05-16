@@ -737,3 +737,279 @@ button:hover,
         padding: 20px;
     }
 }
+
+ /* ── Variables de página ── */
+    :root {
+      --verde:   #00c896;
+      --verde2:  #00a87a;
+      --oscuro:  #0b0f1a;
+      --card:    #111827;
+      --borde:   #1f2d40;
+      --texto:   #e2e8f0;
+      --muted:   #64748b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--oscuro);
+      color: var(--texto);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Fondo animado ── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,150,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,150,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(0,200,150,.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    .nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 2.5rem;
+      border-bottom: 1px solid var(--borde);
+      background: rgba(11,15,26,.85);
+      -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--verde);
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo span {
+      color: var(--texto);
+      font-weight: 300;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: .75rem;
+    }
+
+    .btn-nav-ghost {
+      padding: .5rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid var(--borde);
+      background: transparent;
+      color: var(--texto);
+      font-family: 'Inter', sans-serif;
+      font-size: .875rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .2s, background .2s;
+    }
+
+    .btn-nav-ghost:hover {
+      border-color: var(--verde);
+      background: rgba(0,200,150,.06);
+    }
+
+    .btn-nav-solid {
+      padding: .5rem 1.2rem;
+      border-radius: 8px;
+      border: 1px solid var(--verde);
+      background: var(--verde);
+      color: #0b0f1a;
+      font-family: 'Inter', sans-serif;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+
+    .btn-nav-solid:hover { background: var(--verde2); border-color: var(--verde2); }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 7rem 2rem 5rem;
+      gap: 1.5rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .35rem 1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0,200,150,.3);
+      background: rgba(0,200,150,.08);
+      font-size: .8rem;
+      color: var(--verde);
+      font-weight: 500;
+      animation: fadeUp .6s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--verde);
+      animation: pulse 2s infinite;
+    }
+
+    .hero-title {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      max-width: 780px;
+      animation: fadeUp .6s .1s ease both;
+    }
+
+    .hero-title .accent { color: var(--verde); }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      animation: fadeUp .6s .2s ease both;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp .6s .3s ease both;
+    }
+
+    .btn-primary {
+      padding: .85rem 2.2rem;
+      border-radius: 10px;
+      border: none;
+      background: var(--verde);
+      color: #0b0f1a;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s, transform .15s;
+    }
+
+    .btn-primary:hover { background: var(--verde2); transform: translateY(-2px); }
+
+    .btn-secondary {
+      padding: .85rem 2.2rem;
+      border-radius: 10px;
+      border: 1px solid var(--borde);
+      background: transparent;
+      color: var(--texto);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .2s, transform .15s;
+    }
+
+    .btn-secondary:hover { border-color: var(--verde); transform: translateY(-2px); }
+
+    /* ── Cards de características ── */
+    .features {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 6rem;
+      animation: fadeUp .6s .4s ease both;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 1.75rem;
+      transition: border-color .25s, transform .25s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(0,200,150,.4);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: .5rem;
+    }
+
+    .feature-desc {
+      font-size: .875rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 1.5rem 2rem;
+      border-top: 1px solid var(--borde);
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    /* ── Animaciones ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .3; }
+    }
+
+    .logo-link {
+    text-decoration: none;
+    color: inherit;
+}

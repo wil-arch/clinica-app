@@ -11,12 +11,34 @@ const token =
 const API_URL = 'http://localhost:3000';
 
 /* =========================
+   VALIDAR TOKEN
+========================= */
+
+try {
+
+    const payload = JSON.parse(
+        atob(token.split('.')[1])
+    );
+
+    if (!payload) {
+
+        throw new Error('Token inválido');
+    }
+
+} catch (error) {
+
+    localStorage.clear();
+
+    window.location.replace('/login.html');
+}
+
+/* =========================
    PROTEGER RUTA
 ========================= */
 
 if (!token || !usuario) {
 
-    window.location.href = 'login.html';
+    window.location.replace('/login.html');
 }
 
 /* =========================
@@ -145,16 +167,12 @@ function mostrarSeccion(tipo) {
 /* =========================
    CERRAR SESIÓN
 ========================= */
-
+//  redirige al inicio
 function cerrarSesion() {
-
     localStorage.removeItem('token');
-
-    localStorage.removeItem('usuario');
-
-    window.location.href = 'login.html';
+    localStorage.removeItem('usuario');   // limpia cualquier dato guardado
+    window.location.href = '/';           // va al index.html (página de inicio)
 }
-
 /* =========================
    DASHBOARD
 ========================= */

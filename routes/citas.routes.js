@@ -1,8 +1,27 @@
 const express = require('express');
-
 const router = express.Router();
-
 const db = require('../db');
+
+/* =========================
+   SEGURIDAD USUARIO
+========================= */
+
+function getUsuario(req, res) {
+    const usuarioRol = req.headers['x-usuario-rol'];
+    const usuarioId = req.headers['x-usuario-id'];
+
+    if (!usuarioRol || !usuarioId) {
+        res.status(401).json({
+            mensaje: 'No autenticado: faltan datos de usuario en headers'
+        });
+        return null;
+    }
+
+    return {
+        rol: usuarioRol,
+        id: Number(usuarioId)
+    };
+}
 
 /* =========================
    OBTENER CITAS
@@ -10,125 +29,72 @@ const db = require('../db');
 
 router.get('/', (req, res) => {
 
-    const usuarioRol =
-        req.headers['x-usuario-rol'];
+    const usuario = getUsuario(req, res);
+    if (!usuario) return;
 
-    const usuarioId =
-        req.headers['x-usuario-id'];
+    const usuarioRol = usuario.rol;
+    const usuarioId = usuario.id;
 
-    // ADMIN: VER TODAS
-
+    // ADMIN
     if (usuarioRol === 'admin') {
 
         const sql = `
-            SELECT
-                citas.*,
-                pacientes.nombre AS paciente,
-                medicos.nombre AS medico,
-                medicos.especialidad
+            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
             FROM citas
-            INNER JOIN pacientes
-                ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos
-                ON citas.medico_id = medicos.id
+            INNER JOIN pacientes ON citas.paciente_id = pacientes.id
+            INNER JOIN medicos ON citas.medico_id = medicos.id
             ORDER BY citas.id DESC
         `;
 
         return db.query(sql, (error, resultado) => {
-
             if (error) {
-
                 console.log(error);
-
-                return res.status(500).json({
-                    mensaje: 'Error servidor'
-                });
+                return res.status(500).json({ mensaje: 'Error servidor' });
             }
-
             return res.json(resultado);
         });
     }
 
-    // MÉDICO: SOLO SUS CITAS
-
+    // MÉDICO
     if (usuarioRol === 'medico') {
 
         const sql = `
-            SELECT
-                citas.*,
-                pacientes.nombre AS paciente,
-                medicos.nombre AS medico,
-                medicos.especialidad
+            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
             FROM citas
-            INNER JOIN pacientes
-                ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos
-                ON citas.medico_id = medicos.id
+            INNER JOIN pacientes ON citas.paciente_id = pacientes.id
+            INNER JOIN medicos ON citas.medico_id = medicos.id
             WHERE citas.medico_id = ?
             ORDER BY citas.id DESC
         `;
 
-        return db.query(
-
-            sql,
-
-            [usuarioId],
-
-            (error, resultado) => {
-
-                if (error) {
-
-                    console.log(error);
-
-                    return res.status(500).json({
-                        mensaje: 'Error servidor'
-                    });
-                }
-
-                return res.json(resultado);
+        return db.query(sql, [usuarioId], (error, resultado) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).json({ mensaje: 'Error servidor' });
             }
-        );
+            return res.json(resultado);
+        });
     }
 
-    // CONSULTA: VER SUS CITAS
-
+    // PACIENTE
     if (usuarioRol === 'consulta') {
 
         const sql = `
-            SELECT
-                citas.*,
-                pacientes.nombre AS paciente,
-                medicos.nombre AS medico,
-                medicos.especialidad
+            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
             FROM citas
-            INNER JOIN pacientes
-                ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos
-                ON citas.medico_id = medicos.id
+            INNER JOIN pacientes ON citas.paciente_id = pacientes.id
+            INNER JOIN medicos ON citas.medico_id = medicos.id
             WHERE citas.paciente_id = ?
             ORDER BY citas.id DESC
         `;
 
-        return db.query(
-
-            sql,
-
-            [usuarioId],
-
-            (error, resultado) => {
-
-                if (error) {
-
-                    console.log(error);
-
-                    return res.status(500).json({
-                        mensaje: 'Error servidor'
-                    });
-                }
-
-                return res.json(resultado);
+        return db.query(sql, [usuarioId], (error, resultado) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).json({ mensaje: 'Error servidor' });
             }
-        );
+            return res.json(resultado);
+        });
     }
 
     return res.status(403).json({
@@ -142,6 +108,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
 
+    const usuario = getUsuario(req, res);
+    if (!usuario) return;
+
     const {
         paciente_id,
         medico_id,
@@ -150,150 +119,62 @@ router.post('/', (req, res) => {
         motivo
     } = req.body;
 
-    const usuarioRol =
-        req.headers['x-usuario-rol'];
+    const usuarioRol = usuario.rol;
+    const usuarioId = usuario.id;
 
-    const usuarioId =
-        req.headers['x-usuario-id'];
-
-    // MÉDICO SOLO CREA SUS CITAS
-
-    if (
-
-        usuarioRol === 'medico' &&
-
-        Number(medico_id) !== Number(usuarioId)
-
-    ) {
-
+    if (usuarioRol === 'medico' && Number(medico_id) !== usuarioId) {
         return res.status(403).json({
-
-            mensaje:
-                'Prohibido: no puedes crear citas para otros médicos'
+            mensaje: 'Prohibido: no puedes crear citas para otros médicos'
         });
     }
 
-    // CONSULTA SOLO CREA SUS CITAS
-
-    if (
-
-        usuarioRol === 'consulta' &&
-
-        Number(paciente_id) !== Number(usuarioId)
-
-    ) {
-
+    if (usuarioRol === 'consulta' && Number(paciente_id) !== usuarioId) {
         return res.status(403).json({
-
-            mensaje:
-                'Prohibido: no puedes crear citas para otros pacientes'
+            mensaje: 'Prohibido: no puedes crear citas para otros pacientes'
         });
     }
 
-    // VALIDAR ROLES
-
-    if (
-
-        usuarioRol !== 'admin' &&
-
-        usuarioRol !== 'medico' &&
-
-        usuarioRol !== 'consulta'
-
-    ) {
-
+    if (!['admin', 'medico', 'consulta'].includes(usuarioRol)) {
         return res.status(403).json({
-
-            mensaje:
-                'Prohibido: rol insuficiente'
+            mensaje: 'Prohibido: rol insuficiente'
         });
     }
-
-    // VALIDAR DUPLICADOS
 
     const verificarSQL = `
         SELECT * FROM citas
-        WHERE medico_id = ?
-        AND fecha = ?
-        AND hora = ?
+        WHERE medico_id = ? AND fecha = ? AND hora = ?
     `;
 
-    db.query(
+    db.query(verificarSQL, [medico_id, fecha, hora], (error, resultado) => {
 
-        verificarSQL,
+        if (error) {
+            console.log(error);
+            return res.status(500).json({ mensaje: 'Error servidor' });
+        }
 
-        [
-            medico_id,
-            fecha,
-            hora
-        ],
+        if (resultado.length > 0) {
+            return res.status(400).json({
+                mensaje: 'El médico ya tiene una cita en ese horario'
+            });
+        }
 
-        (error, resultado) => {
+        const sql = `
+            INSERT INTO citas (paciente_id, medico_id, fecha, hora, motivo)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+
+        db.query(sql, [paciente_id, medico_id, fecha, hora, motivo], (error) => {
 
             if (error) {
-
                 console.log(error);
-
-                return res.status(500).json({
-                    mensaje: 'Error servidor'
-                });
+                return res.status(500).json({ mensaje: 'Error creando cita' });
             }
 
-            if (resultado.length > 0) {
-
-                return res.status(400).json({
-
-                    mensaje:
-                        'El médico ya tiene una cita en ese horario'
-                });
-            }
-
-            const sql = `
-                INSERT INTO citas
-                (
-                    paciente_id,
-                    medico_id,
-                    fecha,
-                    hora,
-                    motivo
-                )
-                VALUES (?, ?, ?, ?, ?)
-            `;
-
-            db.query(
-
-                sql,
-
-                [
-                    paciente_id,
-                    medico_id,
-                    fecha,
-                    hora,
-                    motivo
-                ],
-
-                (error) => {
-
-                    if (error) {
-
-                        console.log(error);
-
-                        return res.status(500).json({
-
-                            mensaje:
-                                'Error creando cita'
-                        });
-                    }
-
-                    return res.status(201).json({
-
-                        mensaje:
-                            'Cita creada correctamente'
-                    });
-                }
-            );
-        }
-    );
+            return res.status(201).json({
+                mensaje: 'Cita creada correctamente'
+            });
+        });
+    });
 });
 
 /* =========================
@@ -302,8 +183,10 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 
-    const { id } = req.params;
+    const usuario = getUsuario(req, res);
+    if (!usuario) return;
 
+    const { id } = req.params;
     const {
         paciente_id,
         medico_id,
@@ -313,175 +196,63 @@ router.put('/:id', (req, res) => {
         estado
     } = req.body;
 
-    const usuarioRol =
-        req.headers['x-usuario-rol'];
+    const usuarioRol = usuario.rol;
+    const usuarioId = usuario.id;
 
-    const usuarioId =
-        req.headers['x-usuario-id'];
-
-    // MÉDICO SOLO MODIFICA SUS CITAS
-
-    if (
-
-        usuarioRol === 'medico' &&
-
-        Number(medico_id) !== Number(usuarioId)
-
-    ) {
-
+    if (usuarioRol === 'medico' && Number(medico_id) !== usuarioId) {
         return res.status(403).json({
-
-            mensaje:
-                'Prohibido: solo puedes modificar tus citas'
+            mensaje: 'Prohibido: solo puedes modificar tus citas'
         });
     }
 
-    // CAMBIAR SOLO ESTADO
+    if (estado && !paciente_id && !medico_id && !fecha && !hora && !motivo) {
 
-    if (
+        const sql = `UPDATE citas SET estado = ? WHERE id = ?`;
 
-        estado &&
-
-        !paciente_id &&
-
-        !medico_id &&
-
-        !fecha &&
-
-        !hora &&
-
-        !motivo
-
-    ) {
-
-        const sql = `
-            UPDATE citas
-            SET estado = ?
-            WHERE id = ?
-        `;
-
-        return db.query(
-
-            sql,
-
-            [
-                estado,
-                id
-            ],
-
-            (error) => {
-
-                if (error) {
-
-                    console.log(error);
-
-                    return res.status(500).json({
-
-                        mensaje:
-                            'Error actualizando cita'
-                    });
-                }
-
-                return res.json({
-
-                    mensaje:
-                        'Estado actualizado correctamente'
-                });
+        return db.query(sql, [estado, id], (error) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).json({ mensaje: 'Error actualizando cita' });
             }
-        );
-    }
 
-    // VALIDAR HORARIO DUPLICADO
+            return res.json({ mensaje: 'Estado actualizado correctamente' });
+        });
+    }
 
     const verificarSQL = `
         SELECT * FROM citas
-        WHERE medico_id = ?
-        AND fecha = ?
-        AND hora = ?
-        AND id != ?
+        WHERE medico_id = ? AND fecha = ? AND hora = ? AND id != ?
     `;
 
-    db.query(
+    db.query(verificarSQL, [medico_id, fecha, hora, id], (error, resultado) => {
 
-        verificarSQL,
+        if (error) {
+            console.log(error);
+            return res.status(500).json({ mensaje: 'Error servidor' });
+        }
 
-        [
-            medico_id,
-            fecha,
-            hora,
-            id
-        ],
+        if (resultado.length > 0) {
+            return res.status(400).json({
+                mensaje: 'El médico ya tiene una cita en ese horario'
+            });
+        }
 
-        (error, resultado) => {
+        const sql = `
+            UPDATE citas
+            SET paciente_id=?, medico_id=?, fecha=?, hora=?, motivo=?, estado=?
+            WHERE id=?
+        `;
+
+        db.query(sql, [paciente_id, medico_id, fecha, hora, motivo, estado, id], (error) => {
 
             if (error) {
-
                 console.log(error);
-
-                return res.status(500).json({
-
-                    mensaje:
-                        'Error servidor'
-                });
+                return res.status(500).json({ mensaje: 'Error actualizando cita' });
             }
 
-            if (resultado.length > 0) {
-
-                return res.status(400).json({
-
-                    mensaje:
-                        'El médico ya tiene una cita en ese horario'
-                });
-            }
-
-            const sql = `
-                UPDATE citas
-                SET
-                    paciente_id = ?,
-                    medico_id = ?,
-                    fecha = ?,
-                    hora = ?,
-                    motivo = ?,
-                    estado = ?
-                WHERE id = ?
-            `;
-
-            db.query(
-
-                sql,
-
-                [
-                    paciente_id,
-                    medico_id,
-                    fecha,
-                    hora,
-                    motivo,
-                    estado,
-                    id
-                ],
-
-                (error) => {
-
-                    if (error) {
-
-                        console.log(error);
-
-                        return res.status(500).json({
-
-                            mensaje:
-                                'Error actualizando cita'
-                        });
-                    }
-
-                    return res.json({
-
-                        mensaje:
-                            'Cita actualizada correctamente'
-                    });
-                }
-            );
-        }
-    );
+            return res.json({ mensaje: 'Cita actualizada correctamente' });
+        });
+    });
 });
 
 /* =========================
@@ -490,29 +261,16 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
 
-    const { id } = req.params;
+    const sql = 'DELETE FROM citas WHERE id = ?';
 
-    const sql =
-        'DELETE FROM citas WHERE id = ?';
-
-    db.query(sql, [id], (error) => {
+    db.query(sql, [req.params.id], (error) => {
 
         if (error) {
-
             console.log(error);
-
-            return res.status(500).json({
-
-                mensaje:
-                    'Error eliminando cita'
-            });
+            return res.status(500).json({ mensaje: 'Error eliminando cita' });
         }
 
-        return res.json({
-
-            mensaje:
-                'Cita eliminada correctamente'
-        });
+        return res.json({ mensaje: 'Cita eliminada correctamente' });
     });
 });
 
