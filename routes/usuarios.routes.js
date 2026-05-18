@@ -94,13 +94,44 @@ router.post('/registro', (req, res) => {
                 return res.status(201).json({ mensaje: 'Usuario (médico) registrado correctamente' });
             }
 
-            return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
+            /* =========================
+              SI ES CONSULTA
+              auto-crea registro en pacientes
+               ========================= */
+
+        if (rol === 'consulta') {
+          await db.query(
+        `INSERT INTO pacientes (nombre, email, telefono)
+         VALUES (?, ?, ?)`,
+        [nombre, email, req.body.telefono || '']
+        );
+         }
+
+      return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
+
 
         } catch (err) {
             console.error('Error en registro:', err);
             return res.status(500).json({ mensaje: 'Error interno: ' + err.message });
         }
+
+        /* =========================
+   SI ES CONSULTA
+   auto-crea registro en pacientes
+========================= */
+if (rol === 'consulta') {
+    const { telefono } = req.body;
+
+    await db.query(
+        `INSERT INTO pacientes (nombre, email, telefono)
+         VALUES (?, ?, ?)`,
+        [nombre, email, telefono || '']
+    );
+}
+
+return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
     });
+
 });
 
 /* =========================

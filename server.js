@@ -1,14 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const pacientesRoutes =
-    require('./routes/pacientes.routes');
-const medicosRoutes =
-    require('./routes/medicos.routes');
-const citasRoutes =
-    require('./routes/citas.routes');
-const dashboardRoutes =
-    require('./routes/dashboard.routes');
+const pacientesRoutes  = require('./routes/pacientes.routes');
+const medicosRoutes    = require('./routes/medicos.routes');
+const citasRoutes      = require('./routes/citas.routes');
+const dashboardRoutes  = require('./routes/dashboard.routes');
+const usuariosRoutes   = require('./routes/usuarios.routes');
+const { verificarToken, soloAdmin, adminORecepcionista, adminRecepcionistaMedico } = require('./middleware/auth');
 
 require('dotenv').config();
 
@@ -18,33 +16,36 @@ require('dotenv').config();
 
 require('./db');
 
-const usuariosRoutes = require('./routes/usuarios.routes');
 /* =========================
    INICIALIZAR EXPRESS
 ========================= */
 
 const app = express();
 
-
 /* =========================
-   MIDDLEWARES
+   MIDDLEWARES GLOBALES
 ========================= */
 
 app.use(cors());
-
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: true }));
+
+/* =========================
+   RUTAS PÚBLICAS
+   
+========================= */
 
 app.use('/api/usuarios', usuariosRoutes);
 
-app.use('/api/pacientes', pacientesRoutes);
+/* =========================
+   RUTAS PROTEGIDAS
+   
+========================= */
 
-app.use('/api/medicos', medicosRoutes);
-
-app.use('/api/citas', citasRoutes);
-
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/pacientes', verificarToken, adminRecepcionistaMedico, pacientesRoutes);
+app.use('/api/medicos',   verificarToken, medicosRoutes);
+app.use('/api/citas',     verificarToken, citasRoutes);
+app.use('/api/dashboard', verificarToken, dashboardRoutes);
 
 /* =========================
    ARCHIVOS ESTÁTICOS
@@ -68,6 +69,5 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-
-    console.log(` Servidor corriendo en puerto ${PORT}`);
+    console.log(`Servidor corriendo en puerto ${PORT}`);
 });

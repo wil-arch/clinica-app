@@ -6,231 +6,179 @@
     <title>Dashboard Clínica</title>
     <link rel="stylesheet" href="./css/style.css">
 </head>
-
 <body>
 
     <div class="dashboard">
 
         <!-- SIDEBAR -->
         <aside class="sidebar">
-
-            <div class="logo">
-                <h2>MediClick</h2>
-            </div>
+            <div class="logo"><h2>MediClick</h2></div>
 
             <div class="perfil">
-
-                <img
-                    id="fotoUsuario"
-                    src="./uploads/usuarios/default.png"
-                    alt="Foto"
-                >
-
+                <img id="fotoUsuario" src="./uploads/usuarios/default.png" alt="Foto">
                 <h3 id="nombreUsuario"></h3>
-
                 <p id="rolUsuario"></p>
-
             </div>
 
-            <nav class="menu" id="menu">
-                <!-- JS renderiza menú -->
-            </nav>
+            <nav class="menu" id="menu"></nav>
 
-            <button
-                id="logout"
-                class="btn-logout"
-                onclick="cerrarSesion()"
-            >
+            <button id="logout" class="btn-logout" onclick="cerrarSesion()">
                 Cerrar sesión
             </button>
-
         </aside>
 
         <!-- CONTENIDO -->
         <main class="contenido">
 
             <div class="topbar">
-
                 <h1>Panel principal</h1>
-
                 <p id="bienvenida"></p>
-
             </div>
 
             <div class="secciones-listas">
 
                 <!-- MÉDICOS -->
-                <div
-                    id="seccionMedicos"
-                    class="seccion-lista"
-                    data-roles="admin recepcionista"
-                >
-
-                    <h2 class="seccion-titulo">
-                        Médicos
-                    </h2>
-
-                    <div
-                        class="lista-cards"
-                        id="listaMedicos"
-                    ></div>
-
+                <div id="seccionMedicos" class="seccion-lista">
+                    <h2 class="seccion-titulo">Médicos</h2>
+                    <input type="text" id="buscarMedicos" class="input-buscar"
+                        placeholder="Buscar médico..."
+                        oninput="filtrarLista('buscarMedicos', 'listaMedicos')"/>
+                    <div class="lista-cards" id="listaMedicos"></div>
                 </div>
 
                 <!-- PACIENTES -->
-                <div
-                    id="seccionPacientes"
-                    class="seccion-lista"
-                    data-roles="admin medico recepcionista"
-                >
-
-                    <h2 class="seccion-titulo">
-                        Pacientes
-                    </h2>
-
-                    <div
-                        class="lista-cards"
-                        id="listaPacientes"
-                    ></div>
-
+                <div id="seccionPacientes" class="seccion-lista">
+                    <h2 class="seccion-titulo">Pacientes</h2>
+                    <input type="text" id="buscarPacientes" class="input-buscar"
+                        placeholder="Buscar paciente..."
+                        oninput="filtrarLista('buscarPacientes', 'listaPacientes')"/>
+                    <div class="lista-cards" id="listaPacientes"></div>
                 </div>
 
                 <!-- CITAS -->
-                <div
-                    id="seccionCitas"
-                    class="seccion-lista"
-                    data-roles="admin medico recepcionista consulta"
-                >
+                <div id="seccionCitas" class="seccion-lista">
+                    <h2 class="seccion-titulo">Citas</h2>
+                    <input type="text" id="buscarCitas" class="input-buscar"
+                        placeholder="Buscar cita..."
+                        oninput="filtrarLista('buscarCitas', 'listaCitas')"/>
+                    <div class="lista-cards" id="listaCitas"></div>
+                </div>
 
-                    <h2 class="seccion-titulo">
-                        Citas
-                    </h2>
-
-                    <div
-                        class="lista-cards"
-                        id="listaCitas"
-                    ></div>
-
+                <!-- MIS PACIENTES (médico) -->
+                <div id="seccionMisPacientes" class="seccion-lista">
+                    <h2 class="seccion-titulo">Mis pacientes</h2>
+                    <input
+                        type="text"
+                        id="buscarMisPacientes"
+                        class="input-buscar"
+                        placeholder="Buscar paciente..."
+                        oninput="filtrarLista('buscarMisPacientes', 'listaMisPacientes')"
+                    />
+                    <div class="lista-cards" id="listaMisPacientes"></div>
                 </div>
 
                 <!-- USUARIOS -->
-                <div
-                    id="seccionUsuarios"
-                    class="seccion-lista"
-                    data-roles="admin"
-                >
+                <div id="seccionUsuarios" class="seccion-lista">
+                    <h2 class="seccion-titulo">Usuarios</h2>
+                    <input type="text" id="buscarUsuarios" class="input-buscar"
+                        placeholder="Buscar usuario..."
+                        oninput="filtrarLista('buscarUsuarios', 'listaUsuarios')"/>
+                    <div class="lista-cards" id="listaUsuarios"></div>
+                </div>
 
-                    <h2 class="seccion-titulo">
-                        Usuarios
-                    </h2>
+                <!-- SOLICITAR CITA (solo rol consulta) -->
+                <div id="seccionSolicitarCita" class="seccion-lista">
+                    <h2 class="seccion-titulo">Solicitar cita</h2>
+                    <form id="formSolicitarCita" class="card">
 
-                    <div
-                        class="lista-cards"
-                        id="listaUsuarios"
-                    ></div>
+                        <input type="hidden" id="paciente_id">
 
+                        <div class="input-group">
+                            <label for="medico_id">Médico</label>
+                            <select id="medico_id" required>
+                                <option value="">Seleccione un médico</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="fecha">Fecha</label>
+                            <input type="date" id="fecha" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="hora">Hora</label>
+                            <input type="time" id="hora" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="motivo">Motivo de consulta</label>
+                            <textarea
+                                id="motivo"
+                                class="input-textarea"
+                                placeholder="Describe el motivo de tu consulta"
+                                required
+                            ></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-guardar">Solicitar cita</button>
+                    </form>
+                </div>
+
+                <!-- MIS CITAS (solo rol consulta) -->
+                <div id="seccionMisCitas" class="seccion-lista">
+                    <h2 class="seccion-titulo">Mis citas</h2>
+                    <input type="text" id="buscarMisCitas" class="input-buscar"
+                        placeholder="Buscar cita..."
+                        oninput="filtrarLista('buscarMisCitas', 'listaMisCitas')"/>
+                    <div class="lista-cards" id="listaMisCitas"></div>
                 </div>
 
             </div>
 
-            <!-- MÉTRICAS -->
-            <div
-                class="cards-dashboard"
-                data-roles="admin"
-            >
-
+            <!-- MÉTRICAS (solo admin) -->
+            <div class="cards-dashboard" data-roles="admin">
                 <div class="card-dashboard">
-
                     <h3>Pacientes</h3>
-
                     <h2 id="totalPacientes">0</h2>
-
                 </div>
-
                 <div class="card-dashboard">
-
                     <h3>Médicos</h3>
-
                     <h2 id="totalMedicos">0</h2>
-
                 </div>
-
                 <div class="card-dashboard">
-
                     <h3>Citas</h3>
-
                     <h4>Total citas</h4>
-
                     <h2 id="totalCitas">0</h2>
-
                     <h4>Pendientes</h4>
-
                     <h2 id="citasPendientes">0</h2>
-
                 </div>
-
             </div>
 
         </main>
-
     </div>
 
     <!-- MODAL -->
     <div id="modal-detalle" class="modal-overlay">
-
         <div class="modal-contenido">
-
-            <button
-                class="modal-cerrar"
-                onclick="cerrarModal()"
-            >
-                ✕
-            </button>
-
-            <h2
-                class="modal-titulo"
-                id="modal-titulo"
-            ></h2>
-
-            <div
-                id="modal-campos"
-                class="modal-campos"
-            ></div>
-
+            <button class="modal-cerrar" onclick="cerrarModal()">✕</button>
+            <h2 class="modal-titulo" id="modal-titulo"></h2>
+            <div id="modal-campos" class="modal-campos"></div>
             <div class="modal-acciones">
-
-                <button
-                    class="btn-eliminar"
-                    onclick="eliminarRegistro()"
-                >
-                    Eliminar
-                </button>
-
-                <button
-                    class="btn-cancelar"
-                    onclick="cerrarModal()"
-                >
-                    Cerrar
-                </button>
-
-                <button
-                    class="btn-guardar"
-                    onclick="guardarCambios()"
-                >
-                    Guardar cambios
-                </button>
-
+                <button class="btn-eliminar" onclick="eliminarRegistro()">Eliminar</button>
+                <button class="btn-cancelar" onclick="cerrarModal()">Cerrar</button>
+                <button class="btn-guardar" onclick="guardarCambios()">Guardar cambios</button>
             </div>
-
         </div>
-
     </div>
 
-  <footer class="footer">
-    © <span id="year"></span> MediClick. Todos los derechos reservados.
-  </footer>
+    <footer class="footer">
+        © <span id="year"></span> MediClick. Todos los derechos reservados.
+    </footer>
 
     <script src="./js/dashboard.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
 
 </body>
 </html>

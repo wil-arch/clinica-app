@@ -1,277 +1,180 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
-
-/* =========================
-   SEGURIDAD USUARIO
-========================= */
-
-function getUsuario(req, res) {
-    const usuarioRol = req.headers['x-usuario-rol'];
-    const usuarioId = req.headers['x-usuario-id'];
-
-    if (!usuarioRol || !usuarioId) {
-        res.status(401).json({
-            mensaje: 'No autenticado: faltan datos de usuario en headers'
-        });
-        return null;
-    }
-
-    return {
-        rol: usuarioRol,
-        id: Number(usuarioId)
-    };
-}
+const router  = express.Router();
+const db      = require('../db');
 
 /* =========================
    OBTENER CITAS
 ========================= */
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+    try {
+        const { rol, id } = req.usuario;
 
-    const usuario = getUsuario(req, res);
-    if (!usuario) return;
-
-    const usuarioRol = usuario.rol;
-    const usuarioId = usuario.id;
-
-    // ADMIN
-    if (usuarioRol === 'admin') {
-
-        const sql = `
-            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
+        const sqlBase = `
+            SELECT citas.*, pacientes.nombre AS paciente,
+                   medicos.nombre AS medico, medicos.especialidad
             FROM citas
             INNER JOIN pacientes ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos ON citas.medico_id = medicos.id
-            ORDER BY citas.id DESC
+            INNER JOIN medicos   ON citas.medico_id   = medicos.id
         `;
 
-        return db.query(sql, (error, resultado) => {
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error servidor' });
-            }
-            return res.json(resultado);
-        });
+        let resultado;
+
+        if (rol === 'admin' || rol === 'recepcionista') {
+            [resultado] = await db.query(sqlBase + ' ORDER BY citas.id DESC');
+        }
+        else if (rol === 'medico') {
+            [resultado] = await db.query(
+                sqlBase + ' WHERE citas.medico_id = ? ORDER BY citas.id DESC', [id]
+            );
+        }
+        else if (rol === 'consulta') {
+            [resultado] = await db.query(
+                sqlBase + ' WHERE citas.paciente_id = (SELECT id FROM pacientes WHERE email = (SELECT email FROM usuarios WHERE id = ?)) ORDER BY citas.id DESC', [id]
+            );
+        }
+        else {
+            return res.status(403).json({ mensaje: 'Rol sin permisos' });
+        }
+
+        return res.json(resultado);
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error servidor' });
     }
-
-    // MÉDICO
-    if (usuarioRol === 'medico') {
-
-        const sql = `
-            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
-            FROM citas
-            INNER JOIN pacientes ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos ON citas.medico_id = medicos.id
-            WHERE citas.medico_id = ?
-            ORDER BY citas.id DESC
-        `;
-
-        return db.query(sql, [usuarioId], (error, resultado) => {
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error servidor' });
-            }
-            return res.json(resultado);
-        });
-    }
-
-    // PACIENTE
-    if (usuarioRol === 'consulta') {
-
-        const sql = `
-            SELECT citas.*, pacientes.nombre AS paciente, medicos.nombre AS medico, medicos.especialidad
-            FROM citas
-            INNER JOIN pacientes ON citas.paciente_id = pacientes.id
-            INNER JOIN medicos ON citas.medico_id = medicos.id
-            WHERE citas.paciente_id = ?
-            ORDER BY citas.id DESC
-        `;
-
-        return db.query(sql, [usuarioId], (error, resultado) => {
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error servidor' });
-            }
-            return res.json(resultado);
-        });
-    }
-
-    return res.status(403).json({
-        mensaje: 'Prohibido: rol insuficiente'
-    });
 });
 
 /* =========================
    CREAR CITA
 ========================= */
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
+    try {
+        const { rol, id } = req.usuario;
+        let { paciente_id, medico_id, fecha, hora, motivo } = req.body;
 
-    const usuario = getUsuario(req, res);
-    if (!usuario) return;
+        /* ── Si es consulta busca su paciente_id real por email ── */
+        if (rol === 'consulta') {
+            const [usuarioData] = await db.query(
+                'SELECT email FROM usuarios WHERE id = ?', [id]
+            );
 
-    const {
-        paciente_id,
-        medico_id,
-        fecha,
-        hora,
-        motivo
-    } = req.body;
+            if (usuarioData.length === 0) {
+                return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+            }
 
-    const usuarioRol = usuario.rol;
-    const usuarioId = usuario.id;
+            const [pacienteData] = await db.query(
+                'SELECT id FROM pacientes WHERE email = ?',
+                [usuarioData[0].email]
+            );
 
-    if (usuarioRol === 'medico' && Number(medico_id) !== usuarioId) {
-        return res.status(403).json({
-            mensaje: 'Prohibido: no puedes crear citas para otros médicos'
-        });
-    }
+            if (pacienteData.length === 0) {
+                return res.status(400).json({
+                    mensaje: 'No tienes perfil de paciente. Contacta al administrador.'
+                });
+            }
 
-    if (usuarioRol === 'consulta' && Number(paciente_id) !== usuarioId) {
-        return res.status(403).json({
-            mensaje: 'Prohibido: no puedes crear citas para otros pacientes'
-        });
-    }
-
-    if (!['admin', 'medico', 'consulta'].includes(usuarioRol)) {
-        return res.status(403).json({
-            mensaje: 'Prohibido: rol insuficiente'
-        });
-    }
-
-    const verificarSQL = `
-        SELECT * FROM citas
-        WHERE medico_id = ? AND fecha = ? AND hora = ?
-    `;
-
-    db.query(verificarSQL, [medico_id, fecha, hora], (error, resultado) => {
-
-        if (error) {
-            console.log(error);
-            return res.status(500).json({ mensaje: 'Error servidor' });
+            paciente_id = pacienteData[0].id;
         }
 
-        if (resultado.length > 0) {
+        if (rol === 'medico' && Number(medico_id) !== id) {
+            return res.status(403).json({ mensaje: 'No puedes crear citas para otros médicos' });
+        }
+
+        /* ── Validar duplicados ── */
+        const [existe] = await db.query(
+            'SELECT id FROM citas WHERE medico_id = ? AND fecha = ? AND hora = ?',
+            [medico_id, fecha, hora]
+        );
+
+        if (existe.length > 0) {
             return res.status(400).json({
                 mensaje: 'El médico ya tiene una cita en ese horario'
             });
         }
 
-        const sql = `
-            INSERT INTO citas (paciente_id, medico_id, fecha, hora, motivo)
-            VALUES (?, ?, ?, ?, ?)
-        `;
+        await db.query(
+            `INSERT INTO citas (paciente_id, medico_id, fecha, hora, motivo)
+             VALUES (?, ?, ?, ?, ?)`,
+            [paciente_id, medico_id, fecha, hora, motivo]
+        );
 
-        db.query(sql, [paciente_id, medico_id, fecha, hora, motivo], (error) => {
+        return res.status(201).json({ mensaje: 'Cita creada correctamente' });
 
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error creando cita' });
-            }
-
-            return res.status(201).json({
-                mensaje: 'Cita creada correctamente'
-            });
-        });
-    });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error creando cita' });
+    }
 });
 
 /* =========================
    EDITAR CITA
 ========================= */
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
+    try {
+        const { rol, id: usuarioId } = req.usuario;
+        const { id } = req.params;
+       const { paciente_id, medico_id, fecha, hora, motivo, estado, notas_medico, notas_recepcionista } = req.body;
 
-    const usuario = getUsuario(req, res);
-    if (!usuario) return;
-
-    const { id } = req.params;
-    const {
-        paciente_id,
-        medico_id,
-        fecha,
-        hora,
-        motivo,
-        estado
-    } = req.body;
-
-    const usuarioRol = usuario.rol;
-    const usuarioId = usuario.id;
-
-    if (usuarioRol === 'medico' && Number(medico_id) !== usuarioId) {
-        return res.status(403).json({
-            mensaje: 'Prohibido: solo puedes modificar tus citas'
-        });
-    }
-
-    if (estado && !paciente_id && !medico_id && !fecha && !hora && !motivo) {
-
-        const sql = `UPDATE citas SET estado = ? WHERE id = ?`;
-
-        return db.query(sql, [estado, id], (error) => {
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error actualizando cita' });
-            }
-
-            return res.json({ mensaje: 'Estado actualizado correctamente' });
-        });
-    }
-
-    const verificarSQL = `
-        SELECT * FROM citas
-        WHERE medico_id = ? AND fecha = ? AND hora = ? AND id != ?
-    `;
-
-    db.query(verificarSQL, [medico_id, fecha, hora, id], (error, resultado) => {
-
-        if (error) {
-            console.log(error);
-            return res.status(500).json({ mensaje: 'Error servidor' });
+        if (rol === 'medico' && medico_id && Number(medico_id) !== usuarioId) {
+            return res.status(403).json({ mensaje: 'Solo puedes modificar tus citas' });
         }
 
-        if (resultado.length > 0) {
+        /* ── Actualización parcial (estado, motivo, notas) ── */
+if (!paciente_id && !medico_id && !fecha && !hora) {
+    await db.query(
+        `UPDATE citas
+         SET
+           estado              = COALESCE(?, estado),
+           motivo              = COALESCE(?, motivo),
+           notas_medico        = COALESCE(?, notas_medico),
+           notas_recepcionista = COALESCE(?, notas_recepcionista)
+         WHERE id = ?`,
+        [estado || null, motivo || null, notas_medico || null, notas_recepcionista || null, id]
+    );
+    return res.json({ mensaje: 'Cita actualizada correctamente' });
+}
+        /* ── Validar duplicados al editar ── */
+        const [existe] = await db.query(
+            'SELECT id FROM citas WHERE medico_id = ? AND fecha = ? AND hora = ? AND id != ?',
+            [medico_id, fecha, hora, id]
+        );
+
+        if (existe.length > 0) {
             return res.status(400).json({
                 mensaje: 'El médico ya tiene una cita en ese horario'
             });
         }
 
-        const sql = `
-            UPDATE citas
-            SET paciente_id=?, medico_id=?, fecha=?, hora=?, motivo=?, estado=?
-            WHERE id=?
-        `;
+        await db.query(
+            `UPDATE citas
+             SET paciente_id=?, medico_id=?, fecha=?, hora=?, motivo=?, estado=?
+             WHERE id=?`,
+            [paciente_id, medico_id, fecha, hora, motivo, estado, id]
+        );
 
-        db.query(sql, [paciente_id, medico_id, fecha, hora, motivo, estado, id], (error) => {
+        return res.json({ mensaje: 'Cita actualizada correctamente' });
 
-            if (error) {
-                console.log(error);
-                return res.status(500).json({ mensaje: 'Error actualizando cita' });
-            }
-
-            return res.json({ mensaje: 'Cita actualizada correctamente' });
-        });
-    });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error actualizando cita' });
+    }
 });
 
 /* =========================
    ELIMINAR CITA
 ========================= */
 
-router.delete('/:id', (req, res) => {
-
-    const sql = 'DELETE FROM citas WHERE id = ?';
-
-    db.query(sql, [req.params.id], (error) => {
-
-        if (error) {
-            console.log(error);
-            return res.status(500).json({ mensaje: 'Error eliminando cita' });
-        }
-
+router.delete('/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM citas WHERE id = ?', [req.params.id]);
         return res.json({ mensaje: 'Cita eliminada correctamente' });
-    });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ mensaje: 'Error eliminando cita' });
+    }
 });
 
 module.exports = router;
