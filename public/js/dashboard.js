@@ -1,3 +1,5 @@
+import { mostrarToast, confirmarAccion } from './apiClient.js';
+
 const usuario = JSON.parse(localStorage.getItem('usuario'));
 const token   = localStorage.getItem('token');
 
@@ -16,7 +18,7 @@ try {
     if (!payload) throw new Error('Token inválido');
 } catch (error) {
     localStorage.clear();
-    window.location.replace('/login.html');
+    window.location.replace('./login.html');
 }
 
 /* =========================
@@ -24,7 +26,7 @@ try {
 ========================= */
 
 if (!token || !usuario) {
-    window.location.replace('/login.html');
+    window.location.replace('./login.html');
 }
 
 /* =========================
@@ -73,23 +75,15 @@ if (usuario.rol === 'recepcionista') {
 
 if (usuario.rol === 'medico') {
     opciones += `
-        <a href="#" onclick="mostrarSeccion('misPacientes'); cargarMisPacientes();">
-            Mis pacientes
-        </a>
-        <a href="#" onclick="mostrarSeccion('citas'); cargarCitas();">
-            Mis citas
-        </a>
+        <a href="#" onclick="mostrarSeccion('misPacientes'); cargarMisPacientes();">Mis pacientes</a>
+        <a href="#" onclick="mostrarSeccion('citas'); cargarCitas();">Mis citas</a>
     `;
 }
 
 if (usuario.rol === 'consulta') {
     opciones += `
-        <a href="#" onclick="mostrarSeccion('solicitarCita'); cargarMedicosSelect();">
-            Solicitar cita
-        </a>
-        <a href="#" onclick="mostrarSeccion('misCitas'); cargarMisCitas();">
-            Mis citas
-        </a>
+        <a href="#" onclick="mostrarSeccion('solicitarCita'); cargarMedicosSelect();">Solicitar cita</a>
+        <a href="#" onclick="mostrarSeccion('misCitas'); cargarMisCitas();">Mis citas</a>
     `;
 }
 
@@ -100,21 +94,17 @@ menu.innerHTML = opciones;
 ========================= */
 
 function mostrarSeccion(tipo) {
-
     const secciones = [
         'medicos', 'pacientes', 'citas', 'usuarios',
         'solicitarCita', 'misCitas', 'misPacientes'
     ];
-
-    const soloRol = ['misPacientes', 'misCitas', 'solicitarCita'];
 
     secciones.forEach(s => {
         const el = document.getElementById(
             'seccion' + s.charAt(0).toUpperCase() + s.slice(1)
         );
         if (!el) return;
-        el.style.display =
-            (tipo === s || tipo === 'todos') ? 'block' : 'none';
+        el.style.display = (tipo === s || tipo === 'todos') ? 'block' : 'none';
     });
 }
 
@@ -125,7 +115,7 @@ function mostrarSeccion(tipo) {
 function cerrarSesion() {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
-    window.location.href = '/';
+    window.location.href = './index.html';
 }
 
 /* =========================
@@ -135,22 +125,16 @@ function cerrarSesion() {
 async function cargarDashboard() {
     try {
         const respuesta = await fetch(`${API_URL}/api/dashboard`, { headers });
-
         if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
 
         const data = await respuesta.json();
 
-        console.log('Datos dashboard:', data);
-
         if (document.getElementById('totalPacientes'))
             document.getElementById('totalPacientes').innerText = data.totalPacientes || 0;
-
         if (document.getElementById('totalMedicos'))
             document.getElementById('totalMedicos').innerText = data.totalMedicos || 0;
-
         if (document.getElementById('totalCitas'))
             document.getElementById('totalCitas').innerText = data.totalCitas || 0;
-
         if (document.getElementById('citasPendientes'))
             document.getElementById('citasPendientes').innerText = data.citasPendientes || 0;
 
@@ -174,7 +158,7 @@ const CAMPOS = {
         : usuario.rol === 'recepcionista'
         ? ['estado', 'motivo', 'notas_recepcionista']
         : ['estado', 'motivo', 'notas_medico', 'notas_recepcionista'],
-    usuarios:  ['nombre', 'email', 'rol']
+    usuarios: ['nombre', 'email', 'rol']
 };
 
 /* =========================
@@ -188,8 +172,7 @@ async function cargarMedicos() {
 
         document.getElementById('listaMedicos').innerHTML =
             medicos.map(m => `
-                <div class="item-card"
-                     onclick='verDetalle("medicos", ${JSON.stringify(m)})'>
+                <div class="item-card" onclick='verDetalle("medicos", ${JSON.stringify(m)})'>
                     <p class="item-nombre">${m.nombre}</p>
                     <p class="item-sub">${m.especialidad}</p>
                 </div>
@@ -212,7 +195,6 @@ async function cargarMedicosSelect() {
         if (!select) return;
 
         select.innerHTML = '<option value="">Seleccione un médico</option>';
-
         medicos.forEach(m => {
             const opt       = document.createElement('option');
             opt.value       = m.id;
@@ -235,8 +217,7 @@ async function cargarPacientes() {
 
         document.getElementById('listaPacientes').innerHTML =
             pacientes.map(p => `
-                <div class="item-card"
-                     onclick='verDetalle("pacientes", ${JSON.stringify(p)})'>
+                <div class="item-card" onclick='verDetalle("pacientes", ${JSON.stringify(p)})'>
                     <p class="item-nombre">${p.nombre}</p>
                 </div>
             `).join('');
@@ -260,8 +241,7 @@ async function cargarCitas() {
                     ? new Date(c.fecha).toLocaleDateString('es-CO')
                     : '—';
                 return `
-                    <div class="item-card"
-                         onclick='verDetalle("citas", ${JSON.stringify(c)})'>
+                    <div class="item-card" onclick='verDetalle("citas", ${JSON.stringify(c)})'>
                         <p class="item-nombre">${c.paciente || c.medico || '—'}</p>
                         <p class="item-sub">📅 ${fecha} — ${c.hora || ''}</p>
                         <p class="item-sub">Estado: <strong>${c.estado || 'pendiente'}</strong></p>
@@ -285,8 +265,7 @@ async function cargarMisCitas() {
         if (!lista) return;
 
         if (citas.length === 0) {
-            lista.innerHTML =
-                '<p style="color:#64748b;padding:1rem">No tienes citas registradas.</p>';
+            lista.innerHTML = '<p style="color:#64748b;padding:1rem">No tienes citas registradas.</p>';
             return;
         }
 
@@ -316,16 +295,14 @@ async function cargarMisPacientes() {
         if (!lista) return;
 
         if (pacientes.length === 0) {
-            lista.innerHTML =
-                '<p style="color:#64748b;padding:1rem">Aún no tienes pacientes asignados.</p>';
+            lista.innerHTML = '<p style="color:#64748b;padding:1rem">Aún no tienes pacientes asignados.</p>';
             return;
         }
 
         const v = x => (x != null && x !== '' && x !== 'null') ? x : '—';
 
         lista.innerHTML = pacientes.map(p => `
-            <div class="item-card"
-                 onclick='verDetalle("pacientes", ${JSON.stringify(p)})'>
+            <div class="item-card" onclick='verDetalle("pacientes", ${JSON.stringify(p)})'>
                 <p class="item-nombre">${v(p.nombre)}</p>
                 <p class="item-sub">📄 Doc: ${v(p.documento)}</p>
                 <p class="item-sub">📧 ${v(p.email)}</p>
@@ -333,7 +310,6 @@ async function cargarMisPacientes() {
                 <p class="item-sub">🏠 ${v(p.direccion)}</p>
             </div>
         `).join('');
-
     } catch (error) {
         console.error(error);
     }
@@ -350,8 +326,7 @@ async function cargarUsuarios() {
 
         document.getElementById('listaUsuarios').innerHTML =
             usuarios.map(u => `
-                <div class="item-card"
-                     onclick='verDetalle("usuarios", ${JSON.stringify(u)})'>
+                <div class="item-card" onclick='verDetalle("usuarios", ${JSON.stringify(u)})'>
                     <p class="item-nombre">${u.nombre}</p>
                     <p class="item-sub">${u.rol}</p>
                 </div>
@@ -385,14 +360,17 @@ async function solicitarCita(event) {
 
         const data = await res.json();
 
-        if (!res.ok) return alert(data.mensaje);
+        if (!res.ok) {
+            mostrarToast(data.mensaje || 'Error al crear la cita', 'error');
+            return;
+        }
 
-        alert(data.mensaje);
+        mostrarToast(data.mensaje || 'Cita solicitada correctamente', 'exito');
         document.getElementById('formSolicitarCita').reset();
 
     } catch (error) {
         console.error(error);
-        alert('Error al crear cita');
+        mostrarToast('Error al crear la cita', 'error');
     }
 }
 
@@ -408,48 +386,36 @@ function verDetalle(tipo, datos) {
         datos.nombre || datos.paciente || 'Detalle';
 
     const estadoOpciones = [
-    'pendiente',
-    'confirmada',
-    'en consulta',  
-    'atendida',
-    'cancelada',
-    'finalizada'    
-                ];
+        'pendiente', 'confirmada', 'en consulta',
+        'atendida', 'cancelada', 'finalizada'
+    ];
 
     document.getElementById('modal-campos').innerHTML =
         CAMPOS[tipo].map(campo => {
-
             if (campo === 'estado') {
                 const opciones = estadoOpciones.map(op =>
                     `<option value="${op}" ${(datos[campo] || 'pendiente') === op ? 'selected' : ''}>
                         ${op.charAt(0).toUpperCase() + op.slice(1)}
                     </option>`
                 ).join('');
-
                 return `
                     <div class="modal-campo">
                         <label class="modal-label">Estado</label>
-                        <select class="modal-input" name="estado">
-                            ${opciones}
-                        </select>
+                        <select class="modal-input" name="estado">${opciones}</select>
                     </div>
                 `;
             }
-
             return `
                 <div class="modal-campo">
                     <label class="modal-label">${campo.replace('_', ' ')}</label>
-                    <input
-                        class="modal-input"
-                        name="${campo}"
-                        value="${datos[campo] ?? ''}"
-                    >
+                    <input class="modal-input" name="${campo}" value="${datos[campo] ?? ''}">
                 </div>
             `;
         }).join('');
 
     document.getElementById('modal-detalle').style.display = 'flex';
 }
+
 /* =========================
    GUARDAR CAMBIOS
 ========================= */
@@ -458,7 +424,6 @@ async function guardarCambios() {
     try {
         const inputs = document.querySelectorAll('#modal-campos .modal-input');
         const body   = {};
-
         inputs.forEach(i => { body[i.name] = i.value; });
 
         const res  = await fetch(`${API_URL}/api/${_modalTipo}/${_modalId}`, {
@@ -469,7 +434,12 @@ async function guardarCambios() {
 
         const data = await res.json();
 
-        alert(data.mensaje);
+        if (res.ok) {
+            mostrarToast(data.mensaje || 'Cambios guardados correctamente', 'exito');
+        } else {
+            mostrarToast(data.mensaje || 'Error al guardar cambios', 'error');
+        }
+
         cerrarModal();
         cargarMedicos();
         cargarPacientes();
@@ -478,7 +448,7 @@ async function guardarCambios() {
 
     } catch (error) {
         console.error(error);
-        alert('Error al guardar');
+        mostrarToast('Error al guardar', 'error');
     }
 }
 
@@ -487,7 +457,8 @@ async function guardarCambios() {
 ========================= */
 
 async function eliminarRegistro() {
-    if (!confirm('¿Eliminar registro?')) return;
+    const confirmado = await confirmarAccion('¿Estás seguro de eliminar este registro?');
+    if (!confirmado) return;
 
     try {
         const res  = await fetch(`${API_URL}/api/${_modalTipo}/${_modalId}`, {
@@ -497,7 +468,12 @@ async function eliminarRegistro() {
 
         const data = await res.json();
 
-        alert(data.mensaje);
+        if (res.ok) {
+            mostrarToast(data.mensaje || 'Registro eliminado', 'exito');
+        } else {
+            mostrarToast(data.mensaje || 'Error al eliminar', 'error');
+        }
+
         cerrarModal();
         cargarMedicos();
         cargarPacientes();
@@ -506,7 +482,7 @@ async function eliminarRegistro() {
 
     } catch (error) {
         console.error(error);
-        alert('Error al eliminar');
+        mostrarToast('Error al eliminar', 'error');
     }
 }
 
@@ -529,10 +505,8 @@ document.getElementById('modal-detalle').addEventListener('click', (e) => {
 function filtrarLista(inputId, contenedorId) {
     const termino  = document.getElementById(inputId).value.toLowerCase();
     const tarjetas = document.getElementById(contenedorId).querySelectorAll('.item-card');
-
     tarjetas.forEach(card => {
-        const texto = card.innerText.toLowerCase();
-        card.style.display = texto.includes(termino) ? 'block' : 'none';
+        card.style.display = card.innerText.toLowerCase().includes(termino) ? 'block' : 'none';
     });
 }
 
@@ -546,8 +520,8 @@ if (usuario.rol === 'admin') {
     cargarCitas();
     cargarUsuarios();
     cargarDashboard();
-    mostrarPanelAdmin();  
-      ['seccionMisPacientes', 'seccionMisCitas', 'seccionSolicitarCita'].forEach(id => {
+    mostrarPanelAdmin();
+    ['seccionMisPacientes', 'seccionMisCitas', 'seccionSolicitarCita'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -574,6 +548,7 @@ if (usuario.rol === 'medico') {
     cargarDashboard();
     mostrarSeccion('citas');
 }
+
 if (usuario.rol === 'consulta') {
     mostrarSeccion('solicitarCita');
     cargarMedicosSelect();
@@ -583,9 +558,7 @@ if (usuario.rol === 'consulta') {
     if (inputPaciente) inputPaciente.value = usuario.id;
 
     const formSolicitud = document.getElementById('formSolicitarCita');
-    if (formSolicitud) {
-        formSolicitud.addEventListener('submit', solicitarCita);
-    }
+    if (formSolicitud) formSolicitud.addEventListener('submit', solicitarCita);
 }
 
 /* =========================
@@ -596,3 +569,17 @@ if (usuario.rol !== 'admin') {
     const cards = document.querySelector('.cards-dashboard');
     if (cards) cards.style.display = 'none';
 }
+
+/* =========================
+   EXPONER FUNCIONES AL HTML
+========================= */
+
+window.cerrarSesion      = cerrarSesion;
+window.mostrarPanelAdmin = mostrarPanelAdmin;
+window.mostrarSeccion    = mostrarSeccion;
+window.verDetalle        = verDetalle;
+window.guardarCambios    = guardarCambios;
+window.eliminarRegistro  = eliminarRegistro;
+window.cerrarModal       = cerrarModal;
+window.filtrarLista      = filtrarLista;
+window.solicitarCita     = solicitarCita;

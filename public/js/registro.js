@@ -1,5 +1,7 @@
+import { mostrarToast } from './apiClient.js';
+
 const formulario = document.getElementById('formRegistro');
-const fotoInput = formulario.querySelector('input[name="foto"]');
+const fotoInput  = formulario.querySelector('input[name="foto"]');
 
 /* =========================
    VALIDACIÓN ARCHIVO
@@ -7,21 +9,18 @@ const fotoInput = formulario.querySelector('input[name="foto"]');
 
 function validarImagen(file) {
     if (!file) return false;
-    const nombre = file.name.toLowerCase();
-    const extension = nombre.split('.').pop();
-    const extensionValida = extension === 'jpg' || extension === 'jpeg';
-    const mimeValido = file.type === 'image/jpeg';
-    return extensionValida && mimeValido;
+    const extension = file.name.toLowerCase().split('.').pop();
+    return (extension === 'jpg' || extension === 'jpeg') && file.type === 'image/jpeg';
 }
 
 /* =========================
-   BLOQUEO INMEDIATO AL SELECCIONAR
+   BLOQUEO AL SELECCIONAR
 ========================= */
 
 fotoInput.addEventListener('change', () => {
     const archivo = fotoInput.files[0];
     if (archivo && !validarImagen(archivo)) {
-        alert('Solo se permiten imágenes JPG');
+        mostrarToast('Solo se permiten imágenes JPG', 'error');
         fotoInput.value = '';
     }
 });
@@ -35,17 +34,15 @@ formulario.addEventListener('submit', async (e) => {
 
     const archivo = fotoInput.files[0];
     if (archivo && !validarImagen(archivo)) {
-        alert('Solo se permiten imágenes JPG');
+        mostrarToast('Solo se permiten imágenes JPG', 'error');
         fotoInput.value = '';
         return;
     }
 
     try {
-        const formData = new FormData(formulario);
-
         const respuesta = await fetch('/api/usuarios/registro', {
             method: 'POST',
-            body: formData
+            body: new FormData(formulario)
         });
 
         let data;
@@ -56,16 +53,19 @@ formulario.addEventListener('submit', async (e) => {
         }
 
         if (!respuesta.ok) {
-            alert(data.mensaje || 'Error en el registro');
+            mostrarToast(data.mensaje || 'Error en el registro', 'error');
             return;
         }
 
-        alert(data.mensaje || 'Usuario registrado correctamente');
+        mostrarToast(data.mensaje || 'Usuario registrado correctamente', 'exito');
         formulario.reset();
-        window.location.href = 'login.html';
+
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1500);
 
     } catch (error) {
         console.error(error);
-        alert('Error del servidor');
+        mostrarToast('Error del servidor', 'error');
     }
 });

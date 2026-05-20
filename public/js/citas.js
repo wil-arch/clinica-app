@@ -1,50 +1,29 @@
-import { apiFetch } from './apiClient.js';
+import { apiFetch, mostrarToast } from './apiClient.js';
 
-let editando = false;
-
+let editando     = false;
 let citaEditando = null;
 
-const formulario =
-    document.getElementById('formCita');
-
-const tabla =
-    document.getElementById('tablaCitas');
-
-const selectPacientes =
-    document.getElementById('selectPacientes');
-
-const selectMedicos =
-    document.getElementById('selectMedicos');
+const formulario      = document.getElementById('formCita');
+const tabla           = document.getElementById('tablaCitas');
+const selectPacientes = document.getElementById('selectPacientes');
+const selectMedicos   = document.getElementById('selectMedicos');
 
 /* =========================
    CARGAR PACIENTES
 ========================= */
 
-async function cargarPacientes(){
-
+async function cargarPacientes() {
     try {
-
-        const respuesta =
-            await apiFetch('/api/pacientes');
-
-        const pacientes =
-            await respuesta.json();
+        const respuesta = await apiFetch('/api/pacientes');
+        const pacientes = await respuesta.json();
 
         let opciones = '';
-
         pacientes.forEach(paciente => {
-
-            opciones += `
-                <option value="${paciente.id}">
-                    ${paciente.nombre}
-                </option>
-            `;
+            opciones += `<option value="${paciente.id}">${paciente.nombre}</option>`;
         });
-
         selectPacientes.innerHTML += opciones;
 
     } catch (error) {
-
         console.error('Error al cargar pacientes:', error);
     }
 }
@@ -53,32 +32,18 @@ async function cargarPacientes(){
    CARGAR MEDICOS
 ========================= */
 
-async function cargarMedicos(){
-
+async function cargarMedicos() {
     try {
-
-        const respuesta =
-            await apiFetch('/api/medicos');
-
-        const medicos =
-            await respuesta.json();
+        const respuesta = await apiFetch('/api/medicos');
+        const medicos   = await respuesta.json();
 
         let opciones = '';
-
         medicos.forEach(medico => {
-
-            opciones += `
-                <option value="${medico.id}">
-                    ${medico.nombre}
-                    - ${medico.especialidad}
-                </option>
-            `;
+            opciones += `<option value="${medico.id}">${medico.nombre} - ${medico.especialidad}</option>`;
         });
-
         selectMedicos.innerHTML += opciones;
 
     } catch (error) {
-
         console.error('Error al cargar médicos:', error);
     }
 }
@@ -87,20 +52,13 @@ async function cargarMedicos(){
    OBTENER CITAS
 ========================= */
 
-async function obtenerCitas(){
-
+async function obtenerCitas() {
     try {
-
-        const respuesta =
-            await apiFetch('/api/citas');
-
-        const citas =
-            await respuesta.json();
+        const respuesta = await apiFetch('/api/citas');
+        const citas     = await respuesta.json();
 
         let filas = '';
-
         citas.forEach(cita => {
-
             filas += `
                 <tr>
                     <td>${cita.paciente}</td>
@@ -109,70 +67,25 @@ async function obtenerCitas(){
                     <td>${cita.fecha}</td>
                     <td>${cita.hora}</td>
                     <td>
-                        <select
-                            onchange="cambiarEstado(
-                                ${cita.id},
-                                this.value
-                            )"
-                        >
-                            <option
-                                ${cita.estado === 'pendiente'
-                                    ? 'selected'
-                                    : ''}
-                                value="pendiente"
-                            >
-                                Pendiente
-                            </option>
-                            <option
-                                ${cita.estado === 'confirmada'
-                                    ? 'selected'
-                                    : ''}
-                                value="confirmada"
-                            >
-                                Confirmada
-                            </option>
-                            <option
-                                ${cita.estado === 'cancelada'
-                                    ? 'selected'
-                                    : ''}
-                                value="cancelada"
-                            >
-                                Cancelada
-                            </option>
-                            <option
-                                ${cita.estado === 'finalizada'
-                                    ? 'selected'
-                                    : ''}
-                                value="finalizada"
-                            >
-                                Finalizada
-                            </option>
+                        <select onchange="cambiarEstado(${cita.id}, this.value)">
+                            <option ${cita.estado === 'pendiente'   ? 'selected' : ''} value="pendiente">Pendiente</option>
+                            <option ${cita.estado === 'confirmada'  ? 'selected' : ''} value="confirmada">Confirmada</option>
+                            <option ${cita.estado === 'cancelada'   ? 'selected' : ''} value="cancelada">Cancelada</option>
+                            <option ${cita.estado === 'finalizada'  ? 'selected' : ''} value="finalizada">Finalizada</option>
                         </select>
                     </td>
                     <td>
                         <div class="acciones">
-                            <button
-                                class="btn-editar"
-                                onclick='editarCita(${JSON.stringify(cita)})'
-                            >
-                                Editar
-                            </button>
-                            <button
-                                class="btn-eliminar"
-                                onclick="eliminarCita(${cita.id})"
-                            >
-                                Eliminar
-                            </button>
+                            <button class="btn-editar"   onclick='editarCita(${JSON.stringify(cita)})'>Editar</button>
+                            <button class="btn-eliminar" onclick="eliminarCita(${cita.id})">Eliminar</button>
                         </div>
                     </td>
                 </tr>
             `;
         });
-
         tabla.innerHTML = filas;
 
     } catch (error) {
-
         console.error('Error al obtener citas:', error);
     }
 }
@@ -182,75 +95,35 @@ async function obtenerCitas(){
 ========================= */
 
 formulario.addEventListener('submit', async (e) => {
-
     e.preventDefault();
 
-    const formData =
-        new FormData(formulario);
-
-    const datos =
-        Object.fromEntries(formData);
-
-    let url =
-        '/api/citas';
-
-    let metodo =
-        'POST';
-
-    if(editando){
-
-        url =
-            `/api/citas/${citaEditando}`;
-
-        metodo =
-            'PUT';
-    }
+    const datos  = Object.fromEntries(new FormData(formulario));
+    const url    = editando ? `/api/citas/${citaEditando}` : '/api/citas';
+    const metodo = editando ? 'PUT' : 'POST';
 
     try {
+        const respuesta = await apiFetch(url, {
+            method: metodo,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
 
-        const respuesta = await apiFetch(
+        const data = await respuesta.json();
 
-            url,
-
-            {
-                method: metodo,
-
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify(datos)
-            }
-        );
-
-        const data =
-            await respuesta.json();
-
-        alert(data.mensaje);
-
-        if(respuesta.ok){
-
+        if (respuesta.ok) {
+            mostrarToast(data.mensaje || 'Cita guardada correctamente', 'exito');
             formulario.reset();
-
-            /* =========================
-               TEXTO BOTON NORMAL
-            ========================= */
-
-            formulario.querySelector('button')
-                .innerText = 'Agendar cita';
-
-            editando = false;
-
+            formulario.querySelector('button').innerText = 'Agendar cita';
+            editando     = false;
             citaEditando = null;
-
             obtenerCitas();
+        } else {
+            mostrarToast(data.mensaje || 'Error al guardar la cita', 'error');
         }
 
     } catch (error) {
-
         console.error('Error al guardar cita:', error);
-
-        alert('Ocurrió un error al guardar la cita.');
+        mostrarToast('Ocurrió un error al guardar la cita', 'error');
     }
 });
 
@@ -258,42 +131,24 @@ formulario.addEventListener('submit', async (e) => {
    CAMBIAR ESTADO
 ========================= */
 
-async function cambiarEstado(id, estado){
-
+async function cambiarEstado(id, estado) {
     try {
+        const respuesta = await apiFetch(`/api/citas/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado })
+        });
 
-        const respuesta = await apiFetch(
+        const data = await respuesta.json();
 
-            `/api/citas/${id}`,
-
-            {
-                method: 'PUT',
-
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({ estado })
-            }
-        );
-
-        const data =
-            await respuesta.json();
-
-        if(!respuesta.ok){
-
-            console.error('Error al cambiar estado:', data.mensaje);
-
-            alert('No se pudo actualizar el estado.');
-
+        if (!respuesta.ok) {
+            mostrarToast('No se pudo actualizar el estado', 'error');
             obtenerCitas();
         }
 
     } catch (error) {
-
         console.error('Error al cambiar estado:', error);
-
-        alert('Ocurrió un error al cambiar el estado.');
+        mostrarToast('Ocurrió un error al cambiar el estado', 'error');
     }
 }
 
@@ -301,36 +156,19 @@ async function cambiarEstado(id, estado){
    ELIMINAR
 ========================= */
 
-async function eliminarCita(id){
-
-    const confirmar =
-        confirm('¿Eliminar cita?');
-
-    if(!confirmar) return;
+async function eliminarCita(id) {
+    if (!confirm('¿Eliminar cita?')) return;
 
     try {
+        const respuesta = await apiFetch(`/api/citas/${id}`, { method: 'DELETE' });
+        const data      = await respuesta.json();
 
-        const respuesta = await apiFetch(
-
-            `/api/citas/${id}`,
-
-            {
-                method: 'DELETE'
-            }
-        );
-
-        const data =
-            await respuesta.json();
-
-        alert(data.mensaje);
-
+        mostrarToast(data.mensaje || 'Cita eliminada', 'exito');
         obtenerCitas();
 
     } catch (error) {
-
         console.error('Error al eliminar cita:', error);
-
-        alert('Ocurrió un error al eliminar la cita.');
+        mostrarToast('Ocurrió un error al eliminar la cita', 'error');
     }
 }
 
@@ -338,33 +176,18 @@ async function eliminarCita(id){
    EDITAR CITA
 ========================= */
 
-function editarCita(cita){
+function editarCita(cita) {
+    editando     = true;
+    citaEditando = cita.id;
 
-    editando = true;
+    formulario.paciente_id.value = cita.paciente_id;
+    formulario.medico_id.value   = cita.medico_id;
+    formulario.fecha.value       = cita.fecha?.split('T')[0];
+    formulario.hora.value        = cita.hora;
+    formulario.motivo.value      = cita.motivo;
+    formulario.estado.value      = cita.estado;
 
-    citaEditando =
-        cita.id;
-
-    formulario.paciente_id.value =
-        cita.paciente_id;
-
-    formulario.medico_id.value =
-        cita.medico_id;
-
-    formulario.fecha.value =
-        cita.fecha?.split('T')[0];
-
-    formulario.hora.value =
-        cita.hora;
-
-    formulario.motivo.value =
-        cita.motivo;
-
-    formulario.estado.value =
-        cita.estado;
-
-    formulario.querySelector('button')
-        .innerText = 'Actualizar cita';
+    formulario.querySelector('button').innerText = 'Actualizar cita';
 }
 
 /* =========================
@@ -381,7 +204,5 @@ window.cambiarEstado = cambiarEstado;
 ========================= */
 
 cargarPacientes();
-
 cargarMedicos();
-
 obtenerCitas();
