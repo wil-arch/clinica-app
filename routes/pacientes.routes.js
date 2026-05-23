@@ -64,15 +64,42 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+
 /* =========================
    ELIMINAR PACIENTE
 ========================= */
-
 router.delete('/:id', async (req, res) => {
+    const conn = await db.getConnection();
     try {
-        await db.query('DELETE FROM pacientes WHERE id = ?', [req.params.id]);
-        return res.json({ mensaje: 'Paciente eliminado' });
+        await conn.beginTransaction();
+
+        // 1. Obtener el email del paciente (para borrar su usuario vinculado)
+        const [pacienteData] = await conn.query(
+            'SELECT email FROM pacientes WHERE id = ?', [req.params.id]
+        );
+
+        // 2. Eliminar citas asociadas al paciente
+        await conn.query('DELETE FROM citas WHERE paciente_id = ?', [req.params.id]);
+
+        // 3. Eliminar el paciente
+        await conn.query('DELETE FROM pacientes WHERE id = ?', [req.params.id]);
+
+        // 4. Eliminar su usuario vinculado (si existe, por email)
+        if (pacienteData.length > 0) {
+            await conn.query(
+                'DELETE FROM usuarios WHERE email = ? AND rol = "consulta"',
+                [pacienteData[0].email]
+            );
+        }
+
+        await conn.commit();
+        conn.release();
+
+        return res.json({ mensaje: 'Paciente eliminado correctamente' });
+
     } catch (error) {
+        await conn.rollback();
+        conn.release();
         console.error(error);
         return res.status(500).json({ mensaje: 'Error eliminando paciente' });
     }

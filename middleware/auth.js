@@ -48,5 +48,3 @@ module.exports = {
     adminORecepcionista,
     adminRecepcionistaMedico   
 };
-
-// module.exports = { verificarToken, soloAdmin, adminORecepcionista };

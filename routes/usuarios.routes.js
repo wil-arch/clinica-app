@@ -1,12 +1,10 @@
 const express = require('express');
-const router = express.Router();
-
-const db = require('../db');
-
-const multer = require('multer');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const path = require('path');
+const router  = express.Router();
+const db      = require('../db');
+const multer  = require('multer');
+const bcrypt  = require('bcryptjs');
+const jwt     = require('jsonwebtoken');
+const path    = require('path');
 
 /* =========================
    VALIDACIÓN DE ARCHIVO
@@ -15,8 +13,7 @@ const path = require('path');
 const fileFilter = (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
     const mimeValido = file.mimetype === 'image/jpeg';
-    const extValida = extension === '.jpg' || extension === '.jpeg';
-
+    const extValida  = extension === '.jpg' || extension === '.jpeg';
     if (mimeValido && extValida) {
         cb(null, true);
     } else {
@@ -29,10 +26,8 @@ const fileFilter = (req, file, cb) => {
 ========================= */
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/uploads/usuarios');
-    },
-    filename: (req, file, cb) => {
+    destination: (req, file, cb) => cb(null, 'public/uploads/usuarios'),
+    filename:    (req, file, cb) => {
         const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
         cb(null, uniqueName);
     }
@@ -57,12 +52,10 @@ router.post('/registro', (req, res) => {
         try {
             const { nombre, email, password, rol } = req.body;
 
-            // await con pool.promise()
+            /* ── Verificar email duplicado ── */
             const [existe] = await db.query(
-                'SELECT id FROM usuarios WHERE email = ?',
-                [email]
+                'SELECT id FROM usuarios WHERE email = ?', [email]
             );
-
             if (existe.length > 0) {
                 return res.status(400).json({ mensaje: 'El email ya existe' });
             }
@@ -70,6 +63,7 @@ router.post('/registro', (req, res) => {
             const passwordHash = await bcrypt.hash(password, 10);
             const foto = req.file ? req.file.filename : 'default.png';
 
+            /* ── Insertar usuario ── */
             const [resultado] = await db.query(
                 `INSERT INTO usuarios (nombre, email, password, rol, foto)
                  VALUES (?, ?, ?, ?, ?)`,
@@ -81,57 +75,51 @@ router.post('/registro', (req, res) => {
             /* =========================
                SI ES MÉDICO
             ========================= */
-
             if (rol === 'medico') {
                 const { especialidad, telefono, consultorio } = req.body;
 
                 await db.query(
                     `INSERT INTO medicos (id, nombre, especialidad, telefono, email, consultorio)
                      VALUES (?, ?, ?, ?, ?, ?)`,
-                    [usuarioId, nombre, especialidad || null, telefono || null, email, consultorio || null]
+                    [
+                        usuarioId,
+                        nombre,
+                        especialidad  || null,
+                        telefono      || null,
+                        email,
+                        consultorio   || null
+                    ]
                 );
 
-                return res.status(201).json({ mensaje: 'Usuario (médico) registrado correctamente' });
+                return res.status(201).json({ mensaje: 'Médico registrado correctamente' });
             }
 
             /* =========================
-              SI ES CONSULTA
-              auto-crea registro en pacientes
-               ========================= */
+               SI ES CONSULTA
+               auto-crea perfil en pacientes
+            ========================= */
+            if (rol === 'consulta') {
+                await db.query(
+                    `INSERT INTO pacientes (nombre, email, telefono, documento, direccion, fecha_nacimiento)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [
+                        nombre,
+                        email,
+                        req.body.telefono         || null,
+                        req.body.documento        || null,
+                        req.body.direccion        || null,
+                        req.body.fecha_nacimiento || null
+                    ]
+                );
+            }
 
-        if (rol === 'consulta') {
-          await db.query(
-        `INSERT INTO pacientes (nombre, email, telefono)
-         VALUES (?, ?, ?)`,
-        [nombre, email, req.body.telefono || '']
-        );
-         }
-
-      return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
-
+            return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
 
         } catch (err) {
             console.error('Error en registro:', err);
             return res.status(500).json({ mensaje: 'Error interno: ' + err.message });
         }
-
-        /* =========================
-   SI ES CONSULTA
-   auto-crea registro en pacientes
-========================= */
-if (rol === 'consulta') {
-    const { telefono } = req.body;
-
-    await db.query(
-        `INSERT INTO pacientes (nombre, email, telefono)
-         VALUES (?, ?, ?)`,
-        [nombre, email, telefono || '']
-    );
-}
-
-return res.status(201).json({ mensaje: 'Usuario registrado correctamente' });
     });
-
 });
 
 /* =========================
@@ -143,17 +131,14 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
 
         const [resultado] = await db.query(
-            'SELECT * FROM usuarios WHERE email = ?',
-            [email]
+            'SELECT * FROM usuarios WHERE email = ?', [email]
         );
-
         if (resultado.length === 0) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
 
         const usuario = resultado[0];
         const passwordCorrecta = await bcrypt.compare(password, usuario.password);
-
         if (!passwordCorrecta) {
             return res.status(401).json({ mensaje: 'Contraseña incorrecta' });
         }
@@ -168,11 +153,11 @@ router.post('/login', async (req, res) => {
             mensaje: 'Login correcto',
             token,
             usuario: {
-                id: usuario.id,
+                id:     usuario.id,
                 nombre: usuario.nombre,
-                email: usuario.email,
-                rol: usuario.rol,
-                foto: usuario.foto
+                email:  usuario.email,
+                rol:    usuario.rol,
+                foto:   usuario.foto
             }
         });
 
@@ -205,14 +190,11 @@ router.get('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { nombre, email, rol } = req.body;
-
         await db.query(
             `UPDATE usuarios SET nombre = ?, email = ?, rol = ? WHERE id = ?`,
             [nombre, email, rol, req.params.id]
         );
-
         return res.json({ mensaje: 'Usuario actualizado' });
-
     } catch (err) {
         console.error('Error actualizando usuario:', err);
         return res.status(500).json({ mensaje: 'Error actualizando usuario' });
@@ -225,12 +207,8 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
     try {
-        await db.query(
-            'DELETE FROM usuarios WHERE id = ?',
-            [req.params.id]
-        );
+        await db.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
         return res.json({ mensaje: 'Usuario eliminado correctamente' });
-
     } catch (err) {
         console.error('Error eliminando usuario:', err);
         return res.status(500).json({ mensaje: 'Error eliminando usuario' });

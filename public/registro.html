@@ -90,6 +90,27 @@
         <input id="foto" type="file" name="foto" accept="image/jpg" />
       </div>
 
+      <!-- Campos extra para pacientes (consulta) -->
+     <div class="input-group consulta-only">
+       <label for="documento">Número de documento</label>
+       <input id="documento" type="text" name="documento" placeholder="Ej: 1234567890" />
+     </div>
+
+     <div class="input-group consulta-only">
+       <label for="telefono_paciente">Teléfono</label>
+       <input id="telefono_paciente" type="text" name="telefono" placeholder="Ej: 3001234567" />
+     </div>
+
+     <div class="input-group consulta-only">
+       <label for="direccion">Dirección</label>
+       <input id="direccion" type="text" name="direccion" placeholder="Ej: Calle 10 # 5-23" />
+     </div>
+
+     <div class="input-group consulta-only">
+      <label for="fecha_nacimiento">Fecha de nacimiento</label>
+      <input id="fecha_nacimiento" type="date" name="fecha_nacimiento" />
+     </div>
+
       <button type="submit">Registrarse</button>
 
       <p class="link-auth">
@@ -102,42 +123,6 @@
     </form>
   </div>
 
-  <!-- =========================
-       LOGICA ROLES
-  ========================== -->
-  <script>
-    const rolSelect = document.getElementById('rol');
-    const medicoFields = document.querySelectorAll('.medico-only');
-
-    function ajustarCamposMedico() {
-      const rol = rolSelect.value;
-      medicoFields.forEach(el => {
-        el.style.display = (rol === 'medico') ? 'block' : 'none';
-      });
-    }
-
-    rolSelect.addEventListener('change', ajustarCamposMedico);
-    ajustarCamposMedico();
-  </script>
-
-  <!-- =========================
-       FALLBACK GLOBAL IMÁGENES
-  ========================== -->
-  <script>
-    document.addEventListener("error", function (e) {
-
-      const target = e.target;
-
-      if (target.tagName === "IMG") {
-
-        console.log("Error cargando imagen, formato no permitido:", target.src);
-
-        target.src = "/img/default.png";
-        target.onerror = null;
-      }
-
-    }, true);
-  </script>
 
   <script type="module" src="./js/registro.js"></script>
 

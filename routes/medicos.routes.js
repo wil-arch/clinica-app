@@ -68,11 +68,31 @@ router.put('/:id', async (req, res) => {
    ELIMINAR MÉDICO
 ========================= */
 
+/* =========================
+   ELIMINAR MÉDICO
+========================= */
 router.delete('/:id', async (req, res) => {
+    const conn = await db.getConnection();
     try {
-        await db.query('DELETE FROM medicos WHERE id = ?', [req.params.id]);
+        await conn.beginTransaction();
+
+        // 1. Eliminar citas asociadas al médico
+        await conn.query('DELETE FROM citas WHERE medico_id = ?', [req.params.id]);
+
+        // 2. Eliminar el médico
+        await conn.query('DELETE FROM medicos WHERE id = ?', [req.params.id]);
+
+        // 3. Eliminar su usuario vinculado (mismo id)
+        await conn.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
+
+        await conn.commit();
+        conn.release();
+
         return res.json({ mensaje: 'Médico eliminado correctamente' });
+
     } catch (error) {
+        await conn.rollback();
+        conn.release();
         console.error(error);
         return res.status(500).json({ mensaje: 'Error eliminando médico' });
     }

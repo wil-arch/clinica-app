@@ -265,19 +265,33 @@ async function cargarMisCitas() {
         if (!lista) return;
 
         if (citas.length === 0) {
-            lista.innerHTML = '<p style="color:#64748b;padding:1rem">No tienes citas registradas.</p>';
+            lista.innerHTML = '<p class="lista-vacia">No tienes citas registradas.</p>';
             return;
         }
 
-        lista.innerHTML = citas.map(c => `
-            <div class="item-card">
-                <p class="item-nombre">Dr. ${c.medico}</p>
-                <p class="item-sub">${c.especialidad}</p>
-                <p class="item-sub">📅 ${c.fecha} — ${c.hora}</p>
-                <p class="item-sub">Estado: <strong>${c.estado || 'pendiente'}</strong></p>
-                <p class="item-sub">Motivo: ${c.motivo || '—'}</p>
-            </div>
-        `).join('');
+        lista.innerHTML = citas.map(c => {
+            const fecha = c.fecha
+                ? new Date(c.fecha).toLocaleDateString('es-CO')
+                : '—';
+
+            const btnCancelar = c.estado === 'pendiente'
+                ? `<button class="btn-cancelar-cita" onclick="cancelarCita(${c.id})">
+                       Cancelar cita
+                   </button>`
+                : '';
+
+            return `
+                <div class="item-card">
+                    <p class="item-nombre">Dr. ${c.medico}</p>
+                    <p class="item-sub">${c.especialidad}</p>
+                    <p class="item-sub">📅 ${fecha} — ${c.hora}</p>
+                    <p class="item-sub">Estado: <strong>${c.estado || 'pendiente'}</strong></p>
+                    <p class="item-sub">Motivo: ${c.motivo || '—'}</p>
+                    ${btnCancelar}
+                </div>
+            `;
+        }).join('');
+
     } catch (error) {
         console.error(error);
     }
@@ -295,7 +309,7 @@ async function cargarMisPacientes() {
         if (!lista) return;
 
         if (pacientes.length === 0) {
-            lista.innerHTML = '<p style="color:#64748b;padding:1rem">Aún no tienes pacientes asignados.</p>';
+            lista.innerHTML = '<p class="lista-vacia">Aún no tienes pacientes asignados.</p>';
             return;
         }
 
@@ -310,6 +324,7 @@ async function cargarMisPacientes() {
                 <p class="item-sub">🏠 ${v(p.direccion)}</p>
             </div>
         `).join('');
+
     } catch (error) {
         console.error(error);
     }
@@ -570,6 +585,37 @@ if (usuario.rol !== 'admin') {
     if (cards) cards.style.display = 'none';
 }
 
+
+/* =========================
+   CANCELAR CITA (consulta)
+========================= */
+
+async function cancelarCita(id) {
+    const confirmado = await confirmarAccion('¿Seguro que deseas cancelar esta cita?');
+    if (!confirmado) return;
+
+    try {
+        const res  = await fetch(`${API_URL}/api/citas/${id}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ estado: 'cancelada' })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            mostrarToast('Cita cancelada correctamente', 'exito');
+            cargarMisCitas(); // refresca las tarjetas
+        } else {
+            mostrarToast(data.mensaje || 'No se pudo cancelar', 'error');
+        }
+
+    } catch (error) {
+        console.error(error);
+        mostrarToast('Error al cancelar la cita', 'error');
+    }
+}
+
 /* =========================
    EXPONER FUNCIONES AL HTML
 ========================= */
@@ -583,3 +629,4 @@ window.eliminarRegistro  = eliminarRegistro;
 window.cerrarModal       = cerrarModal;
 window.filtrarLista      = filtrarLista;
 window.solicitarCita     = solicitarCita;
+window.cancelarCita = cancelarCita;
